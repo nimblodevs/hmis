@@ -9,6 +9,7 @@ export const ROLES = {
   LAB_TECH: 'Laboratory Technician',
   PHARMACIST: 'Pharmacist',
   RADIOLOGIST: 'Radiologist',
+  MEDICAL_RECORD_OFFICER: 'Medical Record Officer',
 };
 
 const AuthContext = createContext(null);
