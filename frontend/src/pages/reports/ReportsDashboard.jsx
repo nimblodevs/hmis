@@ -5,10 +5,12 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { Card, Badge } from "../../components/common/HMSComponents";
 import { T, STATUS_META } from "../../utils/hmsConstants";
 import { calcAge, fmtKES } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function ReportsDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const total = patients.length;
   const completed = patients.filter(p => p.status === "Completed").length;
@@ -38,22 +40,27 @@ export default function ReportsDashboard() {
         subtitle={"Daily summary · " + new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         action={<button onClick={() => navigate("/hms/queue")} style={{ padding: "8px 16px", border: "none", borderRadius: 8, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 600, background: "#f1f5f9", color: T.slate }}>← Queue</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
 
         {/* KPI cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(3, 1fr)", 
+          gap: 12, 
+          marginBottom: 20 
+        }}>
           {stats.map(s => (
             <div key={s.label} style={{ background: s.bg, border: "1px solid " + T.border, borderRadius: 12, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ fontSize: 32, lineHeight: 1 }}>{s.icon}</div>
+              <div style={{ fontSize: isMobile ? 24 : 32, lineHeight: 1 }}>{s.icon}</div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: s.col }}>{s.value}</div>
+                <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: s.col }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: T.slateL, marginTop: 2 }}>{s.label}</div>
               </div>
             </div>
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile || isTablet ? "1fr" : "1fr 1fr", gap: 16 }}>
           {/* Status breakdown */}
           <Card>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Queue Status Breakdown</div>
@@ -90,34 +97,36 @@ export default function ReportsDashboard() {
         {/* Patient log */}
         <Card mb={0} style={{ marginTop: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Today's Patient Log</div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["Queue", "Patient", "Age", "Sex", "Category", "Status", "Doctor", "Invoice", "Lab No", "Rx No"].map(h => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, fontFamily: "'DM Mono',monospace", letterSpacing: .8, borderBottom: "1px solid " + T.border }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p, i) => {
-                const sm = STATUS_META[p.status] || STATUS_META["Queued"];
-                return (
-                  <tr key={p.queueNo} style={{ borderBottom: "1px solid #f8fafc", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                    <td style={{ padding: "8px 10px", fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, color: T.navy }}>{p.queueNo}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 12, fontWeight: 600 }}>{p.firstName || p.name} {p.lastName || ""}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{calcAge(p.dateOfBirth) !== "-" ? calcAge(p.dateOfBirth) + "y" : "—"}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.gender?.[0] || "—"}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.category || "—"}</td>
-                    <td style={{ padding: "8px 10px" }}><Badge label={p.status} col={sm.col} bg={sm.bg} sm /></td>
-                    <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.clerking?.doctorName || "—"}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.blue }}>{p.billing?.invoiceNo || "—"}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.teal }}>{p.clerking?.labNo || "—"}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.purple }}>{p.clerking?.rxNo || "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Queue", "Patient", "Age", "Sex", "Category", "Status", "Doctor", "Invoice", "Lab No", "Rx No"].map(h => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, fontFamily: "'DM Mono',monospace", letterSpacing: .8, borderBottom: "1px solid " + T.border }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {patients.map((p, i) => {
+                  const sm = STATUS_META[p.status] || STATUS_META["Queued"];
+                  return (
+                    <tr key={p.queueNo} style={{ borderBottom: "1px solid #f8fafc", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                      <td style={{ padding: "8px 10px", fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700, color: T.navy }}>{p.queueNo}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 12, fontWeight: 600 }}>{p.firstName || p.name} {p.lastName || ""}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{calcAge(p.dateOfBirth) !== "-" ? calcAge(p.dateOfBirth) + "y" : "—"}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.gender?.[0] || "—"}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.category || "—"}</td>
+                      <td style={{ padding: "8px 10px" }}><Badge label={p.status} col={sm.col} bg={sm.bg} sm /></td>
+                      <td style={{ padding: "8px 10px", fontSize: 11, color: T.slate }}>{p.clerking?.doctorName || "—"}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.blue }}>{p.billing?.invoiceNo || "—"}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.teal }}>{p.clerking?.labNo || "—"}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.purple }}>{p.clerking?.rxNo || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
     </HMSLayout>

@@ -1,35 +1,36 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { T } from "../../utils/hmsConstants";
 import { usePatients } from "../../context/PatientContext";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 const NAV = [
-  { key: "queue", label: "Queue", emoji: "🎫", path: "/hms/queue" },
-  { key: "triage", label: "Triage", emoji: "🩺", path: "/hms/triage" },
+  { key: "queue",    label: "Queue",        emoji: "🎫", path: "/hms/queue"    },
+  { key: "triage",   label: "Triage",       emoji: "🩺", path: "/hms/triage"   },
   { key: "register", label: "Registration", emoji: "📝", path: "/hms/register" },
-  { key: "billing", label: "Billing", emoji: "💳", path: "/hms/billing" },
-  { key: "doctor", label: "Doctor", emoji: "🩻", path: "/hms/doctor" },
-  { key: "lab", label: "Laboratory", emoji: "🧪", path: "/hms/lab" },
-  { key: "pharmacy", label: "Pharmacy", emoji: "💊", path: "/hms/pharmacy" },
-  { key: "reports", label: "Reports", emoji: "📊", path: "/hms/reports" },
+  { key: "billing",  label: "Billing",      emoji: "💳", path: "/hms/billing"  },
+  { key: "doctor",   label: "Doctor",       emoji: "🩻", path: "/hms/doctor"   },
+  { key: "lab",      label: "Laboratory",   emoji: "🧪", path: "/hms/lab"      },
+  { key: "pharmacy", label: "Pharmacy",     emoji: "💊", path: "/hms/pharmacy" },
+  { key: "reports",  label: "Reports",      emoji: "📊", path: "/hms/reports"  },
 ];
 
-export default function HMSSidebar() {
+export default function HMSSidebar({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const cnt = {
-    queue: patients.filter(p => p.status === "Queued").length,
-    triage: patients.filter(p => p.status === "Queued").length,
+    queue:    patients.filter(p => p.status === "Queued").length,
+    triage:   patients.filter(p => p.status === "Queued").length,
     register: patients.filter(p => p.status === "Triaged").length,
-    billing: patients.filter(p => p.status === "Registered").length,
-    doctor: patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)").length,
-    lab: patients.filter(p => p.status === "Lab Pending").length,
+    billing:  patients.filter(p => p.status === "Registered").length,
+    doctor:   patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)").length,
+    lab:      patients.filter(p => p.status === "Lab Pending").length,
     pharmacy: patients.filter(p => p.clerking?.orders?.rx?.drugs?.length > 0 && !p.clerking?.dispensed).length,
-    reports: 0,
+    reports:  0,
   };
 
-  // Map any route prefix to its sidebar key
   const routeMap = [
     { prefix: "/hms/triage",       key: "triage"   },
     { prefix: "/hms/register",     key: "register" },
@@ -45,46 +46,59 @@ export default function HMSSidebar() {
   const matched = routeMap.find(r => location.pathname.startsWith(r.prefix));
   const currentKey = matched?.key || "queue";
 
+  const handleNav = (path) => {
+    navigate(path);
+    if (onClose) onClose();
+  };
+
   return (
     <div style={{
-      width: 224, minHeight: "100vh", flexShrink: 0, position: "sticky", top: 0, height: "100vh",
+      width: 224, minHeight: "100vh", height: "100vh", flexShrink: 0,
       background: "linear-gradient(180deg," + T.navy + " 0%," + T.navyM + " 60%,#0a1f38 100%)",
-      display: "flex", flexDirection: "column", boxShadow: "4px 0 24px rgba(0,0,0,.4)", overflow: "hidden",
+      display: "flex", flexDirection: "column",
+      boxShadow: "4px 0 24px rgba(0,0,0,.4)", overflow: "hidden",
     }}>
-      {/* Logo */}
-      <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+      {/* Logo / close row */}
+      <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid rgba(255,255,255,.07)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
             background: "linear-gradient(135deg," + T.cyan + "," + T.cyanD + ")",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19,
             boxShadow: "0 4px 12px rgba(0,188,212,.4)",
           }}>🏥</div>
           <div>
-            <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, letterSpacing: .2 }}>MediCore</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 14, letterSpacing: .2 }}>MediCore</div>
             <div style={{ color: "rgba(255,255,255,.3)", fontSize: 9, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono',monospace" }}>HMS · v3.0</div>
           </div>
         </div>
-        <div style={{ marginTop: 10, fontSize: 10, color: "rgba(255,255,255,.2)", fontFamily: "'DM Mono',monospace" }}>
-          MFL: 13104 · Nairobi, Kenya
-        </div>
+        {/* Close button on mobile */}
+        {isMobile && (
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,.1)", border: "none", borderRadius: 7,
+            color: "rgba(255,255,255,.7)", fontSize: 18, padding: "4px 8px", cursor: "pointer",
+          }}>✕</button>
+        )}
+      </div>
+      <div style={{ fontSize: 9, color: "rgba(255,255,255,.18)", fontFamily: "'DM Mono',monospace", padding: "6px 16px" }}>
+        MFL: 13104 · Nairobi, Kenya
       </div>
 
       {/* Nav */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px 10px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
         {NAV.map(n => {
           const active = currentKey === n.key;
           const badge = cnt[n.key];
           return (
-            <button key={n.key} onClick={() => navigate(n.path)}
+            <button key={n.key} onClick={() => handleNav(n.path)}
               style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "9px 10px", borderRadius: 9, border: "none", cursor: "pointer",
+                padding: "10px 10px", borderRadius: 9, border: "none", cursor: "pointer",
                 fontFamily: "'Outfit',sans-serif", textAlign: "left", marginBottom: 2, transition: "all .15s",
                 background: active ? "rgba(0,188,212,.18)" : "transparent",
                 color: active ? "#fff" : "rgba(255,255,255,.55)",
               }}>
-              <span style={{ fontSize: 16, width: 22, textAlign: "center", flexShrink: 0 }}>{n.emoji}</span>
+              <span style={{ fontSize: 17, width: 22, textAlign: "center", flexShrink: 0 }}>{n.emoji}</span>
               <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, flex: 1 }}>{n.label}</span>
               {(badge > 0) && (
                 <span style={{

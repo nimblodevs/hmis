@@ -6,11 +6,13 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { PatientBanner, Card, Sec, FL, ErrBox, EmptyState, BtnGhost, BtnGreen, IS, SS, Btn } from "../../components/common/HMSComponents";
 import { T, LAB_TESTS, LAB_REF, TEST_SUBS, FLAG_STYLE } from "../../utils/hmsConstants";
 import { getFlag, printLabReport } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function LabProcessingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, saveLabResults } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const initQueueNo = location.state?.queueNo || null;
   const [selQNo, setSelQNo] = useState(initQueueNo);
@@ -50,14 +52,14 @@ export default function LabProcessingPage() {
         subtitle={active.queueNo + " · " + (active.firstName || active.name) + " " + (active.lastName || "")}
         action={<button onClick={() => navigate("/hms/lab")} style={BtnGhost}>← Dashboard</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
         <div>
           <PatientBanner p={active} />
 
           {/* Step tabs */}
-          <div style={{ display: "flex", background: T.card, borderRadius: 10, overflow: "hidden", marginBottom: 14, border: "1px solid " + T.border }}>
+          <div style={{ display: "flex", background: T.card, borderRadius: 10, overflowX: "auto", marginBottom: 14, border: "1px solid " + T.border }}>
             {[["specimen", "🧫 Specimen"], ["results", "📊 Results"], ["summary", "✅ Summary"]].map(([key, lbl]) => (
-              <button key={key} onClick={() => setLabStep(key)} style={{ flex: 1, padding: "11px", border: "none", fontFamily: "'Outfit',sans-serif", cursor: "pointer", fontSize: 12, fontWeight: labStep === key ? 700 : 400, background: labStep === key ? "#f0fdfa" : "transparent", color: labStep === key ? T.teal : T.slateL, borderBottom: labStep === key ? "3px solid " + T.teal : "3px solid transparent" }}>
+              <button key={key} onClick={() => setLabStep(key)} style={{ flex: 1, padding: "11px", border: "none", fontFamily: "'Outfit',sans-serif", cursor: "pointer", fontSize: 12, fontWeight: labStep === key ? 700 : 400, background: labStep === key ? "#f0fdfa" : "transparent", color: labStep === key ? T.teal : T.slateL, borderBottom: labStep === key ? "3px solid " + T.teal : "3px solid transparent", whiteSpace: "nowrap" }}>
                 {lbl}
               </button>
             ))}
@@ -70,7 +72,7 @@ export default function LabProcessingPage() {
               <div style={{ marginBottom: 14 }}>
                 <FL label="Lab Scientist *" ch={<input value={labSci} onChange={e => setLabSci(e.target.value)} placeholder="Full name" style={IS(!labSci && labErr)} />} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(220px,1fr))", gap: 10 }}>
                 {orderedTests.map(id => {
                   const t = LAB_TESTS.find(x => x.id === id);
                   if (!t) return null;
@@ -86,7 +88,7 @@ export default function LabProcessingPage() {
                   );
                 })}
               </div>
-              <button onClick={() => setLabStep("results")} style={{ ...BtnGreen, marginTop: 16 }}>→ Enter Results</button>
+              <button onClick={() => setLabStep("results")} style={{ ...BtnGreen, marginTop: 16, width: isMobile ? "100%" : "auto" }}>→ Enter Results</button>
             </Card>
           )}
 
@@ -99,7 +101,7 @@ export default function LabProcessingPage() {
                 return (
                   <Card key={testId}>
                     <Sec accent={test.colour}>{test.name}</Sec>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(200px,1fr))", gap: 10 }}>
                       {subs.map(sid => {
                         const ref = LAB_REF[sid];
                         if (!ref) return null;
@@ -128,7 +130,7 @@ export default function LabProcessingPage() {
                   </Card>
                 );
               })}
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, gap: 10 }}>
                 <button onClick={() => setLabStep("specimen")} style={BtnGhost}>← Specimen</button>
                 <button onClick={() => setLabStep("summary")} style={BtnGreen}>→ Review Summary</button>
               </div>
@@ -138,7 +140,7 @@ export default function LabProcessingPage() {
           {labStep === "summary" && (
             <Card>
               <Sec accent={T.teal}>Results Summary</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 8, marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(180px,1fr))", gap: 8, marginBottom: 16 }}>
                 {Object.entries(labRes).map(([sid, r]) => {
                   const ref = LAB_REF[sid]; const fc = FLAG_STYLE[r.flag] || FLAG_STYLE.empty;
                   return (
@@ -151,11 +153,11 @@ export default function LabProcessingPage() {
                 })}
               </div>
               <FL label="Lab Scientist *" ch={<input value={labSci} onChange={e => setLabSci(e.target.value)} placeholder="Full name" style={IS(!labSci && labErr)} />} />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, gap: 10 }}>
-                <button onClick={() => setLabStep("results")} style={BtnGhost}>← Edit Results</button>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => printLabReport({ ...active, clerking: { ...active.clerking, labResults: labRes, labScientist: labSci } })} style={{ ...Btn, background: "#f1f5f9", color: T.slate }}>🖨️ Print</button>
-                  <button onClick={handleSave} style={BtnGreen}>✅ Release Results</button>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+                <button onClick={() => setLabStep("results")} style={{ ...BtnGhost, width: isMobile ? "100%" : "auto" }}>← Edit Results</button>
+                <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
+                  <button onClick={() => printLabReport({ ...active, clerking: { ...active.clerking, labResults: labRes, labScientist: labSci } })} style={{ ...Btn, background: "#f1f5f9", color: T.slate, flex: isMobile ? 1 : "none" }}>🖨️ Print</button>
+                  <button onClick={handleSave} style={{ ...BtnGreen, flex: isMobile ? 1 : "none" }}>✅ Release Results</button>
                 </div>
               </div>
             </Card>

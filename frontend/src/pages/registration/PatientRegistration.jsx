@@ -6,6 +6,7 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { PatientBanner, FlowBar, Card, Sec, FL, ErrBox, EmptyState, BtnGhost, BtnPrimary, IS, SS, Btn } from "../../components/common/HMSComponents";
 import { T, REG_TABS } from "../../utils/hmsConstants";
 import { genNo, pad } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 const INIT_REG = {
   firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Female",
@@ -17,6 +18,7 @@ export default function PatientRegistration() {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, saveRegistration, registerDirect } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const initQueueNo = location.state?.queueNo || null;
   const isDirect = location.state?.direct || false;
@@ -73,7 +75,7 @@ export default function PatientRegistration() {
         subtitle={directMode ? "Manual Registration" : active ? active.queueNo + " · " + (active.name || "") : "Processing..."}
         action={<button onClick={() => navigate("/hms/register")} style={BtnGhost}>← Dashboard</button>}
       />
-      <div style={{ padding: "20px 24px", maxWidth: 820 }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px", maxWidth: 820 }}>
         {directMode && (
           <div style={{ background: T.teal, color: "#fff", borderRadius: 11, padding: "14px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 12px " + T.teal + "33" }}>
             <span style={{ fontSize: 20 }}>📝</span>
@@ -91,14 +93,15 @@ export default function PatientRegistration() {
           </>
         )}
 
-        <div style={{ display: "flex", background: T.card, borderRadius: 10, overflow: "hidden", marginBottom: 14, border: "1px solid " + T.border }}>
+        <div style={{ display: "flex", background: T.card, borderRadius: 10, overflowX: "auto", marginBottom: 14, border: "1px solid " + T.border }}>
           {REG_TABS.map((t, i) => (
             <button key={t} onClick={() => setRegTab(i)} style={{
-              flex: 1, padding: "11px 6px", border: "none", fontFamily: "'Outfit',sans-serif",
+              flex: 1, padding: "11px 12px", border: "none", fontFamily: "'Outfit',sans-serif",
               cursor: "pointer", fontSize: 11, fontWeight: regTab === i ? 700 : 400,
               background: regTab === i ? "#f0f9ff" : "transparent",
               color: regTab === i ? "#0369a1" : T.slateL,
-              borderBottom: regTab === i ? "3px solid #0369a1" : "3px solid transparent"
+              borderBottom: regTab === i ? "3px solid #0369a1" : "3px solid transparent",
+              whiteSpace: "nowrap"
             }}>
               {t}
             </button>
@@ -111,7 +114,7 @@ export default function PatientRegistration() {
           {regTab === 0 && (
             <div>
               <Sec accent="#0369a1">Personal Information</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
                 <FL label="First Name *" ch={<input value={reg.firstName || ""} onChange={rf("firstName")} style={IS(!reg.firstName && regErr)} />} />
                 <FL label="Middle Name" ch={<input value={reg.middleName || ""} onChange={rf("middleName")} style={IS()} />} />
                 <FL label="Last Name *" ch={<input value={reg.lastName || ""} onChange={rf("lastName")} style={IS(!reg.lastName && regErr)} />} />
@@ -123,17 +126,17 @@ export default function PatientRegistration() {
           {regTab === 1 && (
             <div>
               <Sec accent="#0891b2">Contact Details</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <FL label="Phone Number" ch={<input value={reg.phone || ""} onChange={rf("phone")} style={IS()} />} />
                 <FL label="Email Address" ch={<input value={reg.email || ""} onChange={rf("email")} style={IS()} />} />
-                <FL label="Residential Address" span={2} ch={<input value={reg.address || ""} onChange={rf("address")} style={IS()} />} />
+                <FL label="Residential Address" span={isMobile ? 1 : 2} ch={<input value={reg.address || ""} onChange={rf("address")} style={IS()} />} />
               </div>
             </div>
           )}
           {regTab === 2 && (
             <div>
               <Sec accent="#ea580c">Emergency Contact</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <FL label="Next of Kin Name" ch={<input value={reg.kin || ""} onChange={rf("kin")} style={IS()} />} />
                 <FL label="Next of Kin Phone" ch={<input value={reg.emergencyPhone || ""} onChange={rf("emergencyPhone")} style={IS()} />} />
                 <FL label="Emergency Contact Name" ch={<input value={reg.emergencyName || ""} onChange={rf("emergencyName")} style={IS()} />} />
@@ -144,7 +147,7 @@ export default function PatientRegistration() {
           {regTab === 3 && (
             <div>
               <Sec accent="#059669">Payment & Category</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <FL label="Patient Category" ch={
                   <select value={reg.category || "Cash"} onChange={rf("category")} style={SS}>
                     {["Cash", "SHA", "Corporate", "Insurance"].map(c => <option key={c}>{c}</option>)}
@@ -160,11 +163,14 @@ export default function PatientRegistration() {
           )}
         </Card>
 
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-          <button onClick={() => navigate("/hms/register")} style={BtnGhost}>← Back to Dashboard</button>
-          <button onClick={handleSave} style={{ ...BtnPrimary, background: T.teal, padding: "10px 24px" }}>💾 Save & Complete Registration</button>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+          <button onClick={() => navigate("/hms/register")} style={{ ...BtnGhost, width: isMobile ? "100%" : "auto" }}>← Back to Dashboard</button>
+          <button onClick={handleSave} style={{ ...BtnPrimary, background: T.teal, padding: "10px 24px", width: isMobile ? "100%" : "auto" }}>💾 Save & Complete Registration</button>
         </div>
       </div>
+    </HMSLayout>
+  );
+}
     </HMSLayout>
   );
 }

@@ -6,11 +6,13 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { PatientBanner, RefNums, Card, Sec, FL, ErrBox, EmptyState, BtnGhost, BtnGreen, IS, Btn } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
 import { printRxLabel } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function PharmacyDispensePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, dispense } = usePatients();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const initQueueNo = location.state?.queueNo || null;
   const [selQNo, setSelQNo] = useState(initQueueNo);
@@ -46,8 +48,13 @@ export default function PharmacyDispensePage() {
         subtitle={active.queueNo + " · " + (active.firstName || active.name) + " " + (active.lastName || "")}
         action={<button onClick={() => navigate("/hms/pharmacy")} style={BtnGhost}>← Dashboard</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, alignItems: "start" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr" : "1fr 280px", 
+          gap: 16, 
+          alignItems: "start" 
+        }}>
           <div>
             <PatientBanner p={active} />
             <RefNums p={active} />
@@ -80,7 +87,7 @@ export default function PharmacyDispensePage() {
             </Card>
           </div>
 
-          <div style={{ position: "sticky", top: 70 }}>
+          <div style={{ position: isMobile || isTablet ? "static" : "sticky", top: 70 }}>
             <Card>
               <Sec accent={T.green}>Dispensing</Sec>
               <div style={{ marginBottom: 14 }}>

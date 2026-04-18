@@ -4,10 +4,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function LabDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.status === "Lab Pending");
   const processedToday = patients.filter(p => p.status === "With Doctor (Post-Lab)").length;
@@ -28,9 +30,14 @@ export default function LabDashboard() {
         action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Manual Lab Lookup..." />}
       />
       
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
         {/* Stats Row */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Pending Specimens" value={waiting.length} icon="🧪" color={T.orange} />
           <StatCard label="Results Released" value={processedToday} icon="✅" color={T.green} />
           <StatCard label="Critical Results" value={critical} icon="🚨" color={T.red} />

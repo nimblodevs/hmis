@@ -5,6 +5,7 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { PatientBanner, FlowBar, RefNums, Card, Sec, FL, ErrBox, EmptyState, BtnGhost, BtnGreen, BtnPrimary, IS, SS, TA, Btn, PatientSearch } from "../../components/common/HMSComponents";
 import { T, ICD10, LAB_TESTS, FLAG_STYLE, LAB_REF } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 const INIT_CLK = {
   complaint: "", hpc: "", pmh: "", psh: "", fhx: "", shx: "", meds: "", allergies: "",
@@ -18,6 +19,7 @@ export default function DoctorClerking() {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, saveClerking } = usePatients();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const initQueueNo = location.state?.queueNo || null;
   const [selQNo, setSelQNo] = useState(initQueueNo);
@@ -81,7 +83,7 @@ export default function DoctorClerking() {
         subtitle={active.queueNo + " · " + (active.firstName || active.name) + " " + (active.lastName || "")}
         action={<button onClick={() => navigate("/hms/doctor")} style={BtnGhost}>← Dashboard</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
         <PatientBanner p={active} />
         <FlowBar status={active.status} />
         <RefNums p={active} />
@@ -90,12 +92,12 @@ export default function DoctorClerking() {
             {active.triage && (
               <div style={{ background: "linear-gradient(90deg," + T.navy + "," + T.navyL + ")", borderRadius: 10, padding: "11px 16px", marginBottom: 14, display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {[["BP", active.triage.bp + " mmHg"], ["Pulse", active.triage.pulse + " bpm"], ["Temp", active.triage.temp + "°C"], ["SpO2", active.triage.spo2 + "%"], ["GCS", active.triage.gcs + "/15"], ["Wt", active.triage.wt + " kg"]].map(([l, v]) => (
-                  <div key={l}>
+                  <div key={l} style={{ flex: isMobile ? "1 0 30%" : "none" }}>
                     <div style={{ fontSize: 8, color: "rgba(255,255,255,.35)", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>{l}</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#e0f7fa" }}>{v}</div>
                   </div>
                 ))}
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: isMobile ? "1 0 100%" : 1 }}>
                   <div style={{ fontSize: 8, color: "rgba(255,255,255,.35)", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Complaint</div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#e0f7fa" }}>{active.triage.complaint}</div>
                 </div>
@@ -105,14 +107,14 @@ export default function DoctorClerking() {
             {/* Lab results panel */}
             {labResults && (
               <Card mb={14}>
-                <div style={{ background: "linear-gradient(135deg," + T.teal + ",#0369a1)", borderRadius: 9, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ background: "linear-gradient(135deg," + T.teal + ",#0369a1)", borderRadius: 9, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 12, flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>🧪 Lab Results — {active.clerking?.labNo}</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {labCrit > 0 && <span style={{ background: "#fee2e2", color: T.red, borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>🔴 {labCrit} Critical</span>}
                     {labAbnorm > 0 && <span style={{ background: "#fef3c7", color: "#b45309", borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>⚠️ {labAbnorm} Abnormal</span>}
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill,minmax(160px,1fr))", gap: 8 }}>
                   {Object.entries(labResults).map(([sid, r]) => {
                     const ref = LAB_REF[sid]; const fc = FLAG_STYLE[r.flag] || FLAG_STYLE.empty;
                     return (
@@ -128,9 +130,9 @@ export default function DoctorClerking() {
             )}
 
             {/* Tab nav */}
-            <div style={{ display: "flex", background: T.card, borderRadius: 10, overflow: "hidden", marginBottom: 14, border: "1px solid " + T.border }}>
+            <div style={{ display: "flex", background: T.card, borderRadius: 10, overflowX: "auto", marginBottom: 14, border: "1px solid " + T.border }}>
               {DOC_TABS.map((t, i) => (
-                <button key={t} onClick={() => setDocTab(i)} style={{ flex: 1, padding: "11px 6px", border: "none", fontFamily: "'Outfit',sans-serif", cursor: "pointer", fontSize: 10, fontWeight: docTab === i ? 700 : 400, background: docTab === i ? "#f0f9ff" : "transparent", color: docTab === i ? "#0369a1" : T.slateL, borderBottom: docTab === i ? "3px solid #0369a1" : "3px solid transparent" }}>{t}</button>
+                <button key={t} onClick={() => setDocTab(i)} style={{ flex: 1, padding: "11px 12px", border: "none", fontFamily: "'Outfit',sans-serif", cursor: "pointer", fontSize: 10, fontWeight: docTab === i ? 700 : 400, background: docTab === i ? "#f0f9ff" : "transparent", color: docTab === i ? "#0369a1" : T.slateL, borderBottom: docTab === i ? "3px solid #0369a1" : "3px solid transparent", whiteSpace: "nowrap" }}>{t}</button>
               ))}
             </div>
             <ErrBox msg={docErr} />
@@ -139,9 +141,9 @@ export default function DoctorClerking() {
               {docTab === 0 && (
                 <div>
                   <Sec>History</Sec>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <FL label="Presenting Complaint *" span={2} ch={<textarea value={clk.complaint} onChange={ck("complaint")} rows={2} style={TA(!clk.complaint && docErr)} />} />
-                    <FL label="History of PC" span={2} ch={<textarea value={clk.hpc} onChange={ck("hpc")} rows={3} style={TA()} />} />
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                    <FL label="Presenting Complaint *" span={isMobile ? 1 : 2} ch={<textarea value={clk.complaint} onChange={ck("complaint")} rows={2} style={TA(!clk.complaint && docErr)} />} />
+                    <FL label="History of PC" span={isMobile ? 1 : 2} ch={<textarea value={clk.hpc} onChange={ck("hpc")} rows={3} style={TA()} />} />
                     <FL label="Past Medical History" ch={<textarea value={clk.pmh} onChange={ck("pmh")} rows={2} style={TA()} />} />
                     <FL label="Past Surgical History" ch={<textarea value={clk.psh} onChange={ck("psh")} rows={2} style={TA()} />} />
                     <FL label="Family History" ch={<textarea value={clk.fhx} onChange={ck("fhx")} rows={2} style={TA()} />} />
@@ -155,7 +157,7 @@ export default function DoctorClerking() {
                 <div>
                   <Sec>Physical Examination</Sec>
                   <FL label="Examination Findings *" ch={<textarea value={clk.exam} onChange={ck("exam")} rows={6} style={TA(!clk.exam && docErr)} />} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginTop: 12 }}>
                     <FL label="Doctor Name *" ch={<input value={clk.doctorName} onChange={ck("doctorName")} placeholder="Full name" style={IS(!clk.doctorName && docErr)} />} />
                     <FL label="Doctor Reg. No." ch={<input value={clk.doctorReg} onChange={ck("doctorReg")} placeholder="KMA/MDCN number" style={IS()} />} />
                   </div>
@@ -164,7 +166,7 @@ export default function DoctorClerking() {
               {docTab === 2 && (
                 <div>
                   <Sec>Diagnosis & Plan</Sec>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                     <FL label="Provisional Diagnosis" ch={<input value={clk.provDx} onChange={ck("provDx")} style={IS()} />} />
                     <FL label="ICD-10 Code" ch={
                       <select value={clk.provCode} onChange={e => { const it = ICD10.find(c => c.code === e.target.value); setClk(p => ({ ...p, provCode: e.target.value, provDx: it ? it.desc : p.provDx })); }} style={SS}>
@@ -179,9 +181,9 @@ export default function DoctorClerking() {
                         {ICD10.map(c => <option key={c.code} value={c.code}>{c.code} — {c.desc}</option>)}
                       </select>
                     } />
-                    <FL label="Differential Diagnoses" span={2} ch={<textarea value={clk.differentials} onChange={ck("differentials")} rows={2} style={TA()} />} />
-                    <FL label="Management Plan" span={2} ch={<textarea value={clk.plan} onChange={ck("plan")} rows={3} style={TA()} />} />
-                    <FL label="Disposition" ch={
+                    <FL label="Differential Diagnoses" span={isMobile ? 1 : 2} ch={<textarea value={clk.differentials} onChange={ck("differentials")} rows={2} style={TA()} />} />
+                    <FL label="Management Plan" span={isMobile ? 1 : 2} ch={<textarea value={clk.plan} onChange={ck("plan")} rows={3} style={TA()} />} />
+                    <FL label="Disposition" span={isMobile ? 1 : 2} ch={
                       <select value={clk.disp} onChange={ck("disp")} style={SS}>
                         {["OPD Follow-up", "Admit - Medical", "Admit - Surgical", "Admit - ICU", "Refer", "Discharge"].map(d => <option key={d}>{d}</option>)}
                       </select>
@@ -230,7 +232,7 @@ export default function DoctorClerking() {
                       })}
                     </div>
                   ) : <div style={{ padding: "20px", textAlign: "center", color: T.slateL, fontSize: 13, border: "1.5px dashed " + T.border, borderRadius: 10 }}>Search and add tests above</div>}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginTop: 12 }}>
                     <FL label="Urgency" ch={<select value={labUrg} onChange={e => setLabUrg(e.target.value)} style={SS}>{["Routine", "Urgent", "STAT (Immediate)"].map(u => <option key={u}>{u}</option>)}</select>} />
                     <FL label="Clinical Notes" ch={<input value={labNote} onChange={e => setLabNote(e.target.value)} placeholder="Clinical indication" style={IS()} />} />
                   </div>
@@ -240,7 +242,7 @@ export default function DoctorClerking() {
                 <div>
                   <Sec accent={T.green}>Prescription</Sec>
                   <div style={{ background: "#f8fafc", borderRadius: 10, padding: "14px", border: "1px solid " + T.border, marginBottom: 14 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
                       <FL label="Drug Name *" ch={<input value={rxForm.name} onChange={e => setRxForm(p => ({ ...p, name: e.target.value }))} placeholder="Drug name" style={IS()} />} />
                       <FL label="Dose" ch={<input value={rxForm.dose} onChange={e => setRxForm(p => ({ ...p, dose: e.target.value }))} placeholder="e.g. 500mg" style={IS()} />} />
                       <FL label="Route" ch={<select value={rxForm.route} onChange={e => setRxForm(p => ({ ...p, route: e.target.value }))} style={SS}>{["Oral", "IV Bolus", "IV Infusion", "IM", "SC", "Sublingual", "Topical", "Inhaled", "Rectal"].map(r => <option key={r}>{r}</option>)}</select>} />
@@ -248,26 +250,28 @@ export default function DoctorClerking() {
                       <FL label="Duration" ch={<select value={rxForm.duration} onChange={e => setRxForm(p => ({ ...p, duration: e.target.value }))} style={SS}>{["1 day", "3 days", "5 days", "7 days", "14 days", "1 month", "3 months", "Ongoing", "PRN"].map(d => <option key={d}>{d}</option>)}</select>} />
                       <FL label="Instructions" ch={<input value={rxForm.instructions} onChange={e => setRxForm(p => ({ ...p, instructions: e.target.value }))} placeholder="e.g. Take with food" style={IS()} />} />
                     </div>
-                    <button onClick={addRx} style={{ ...BtnGreen, padding: "8px 18px", fontSize: 12 }}>+ Add Drug</button>
+                    <button onClick={addRx} style={{ ...BtnGreen, padding: "8px 18px", fontSize: 12, width: isMobile ? "100%" : "auto" }}>+ Add Drug</button>
                   </div>
                   {rxList.length > 0 && (
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead><tr style={{ background: "#f8fafc" }}>{["#", "Drug", "Dose", "Route", "Freq", "Duration", "Instructions", ""].map(h => <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, borderBottom: "1px solid " + T.border }}>{h}</th>)}</tr></thead>
-                      <tbody>
-                        {rxList.map((d, i) => (
-                          <tr key={d.id} style={{ borderBottom: "1px solid " + T.border }}>
-                            <td style={{ padding: "8px 10px", fontSize: 11, color: T.slateL }}>{i + 1}</td>
-                            <td style={{ padding: "8px 10px", fontWeight: 600, fontSize: 13 }}>{d.name}</td>
-                            <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.dose}</td>
-                            <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.route}</td>
-                            <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.freq}</td>
-                            <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.duration}</td>
-                            <td style={{ padding: "8px 10px", fontSize: 11, color: T.slateL }}>{d.instructions}</td>
-                            <td style={{ padding: "8px 10px" }}><button onClick={() => setRxList(p => p.filter(x => x.id !== d.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 5, width: 22, height: 22, cursor: "pointer", color: T.red, fontWeight: 700 }}>×</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+                        <thead><tr style={{ background: "#f8fafc" }}>{["#", "Drug", "Dose", "Route", "Freq", "Duration", "Instructions", ""].map(h => <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, borderBottom: "1px solid " + T.border }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {rxList.map((d, i) => (
+                            <tr key={d.id} style={{ borderBottom: "1px solid " + T.border }}>
+                              <td style={{ padding: "8px 10px", fontSize: 11, color: T.slateL }}>{i + 1}</td>
+                              <td style={{ padding: "8px 10px", fontWeight: 600, fontSize: 13 }}>{d.name}</td>
+                              <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.dose}</td>
+                              <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.route}</td>
+                              <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.freq}</td>
+                              <td style={{ padding: "8px 10px", fontSize: 12 }}>{d.duration}</td>
+                              <td style={{ padding: "8px 10px", fontSize: 11, color: T.slateL }}>{d.instructions}</td>
+                              <td style={{ padding: "8px 10px" }}><button onClick={() => setRxList(p => p.filter(x => x.id !== d.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 5, width: 22, height: 22, cursor: "pointer", color: T.red, fontWeight: 700 }}>×</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               )}
@@ -275,7 +279,7 @@ export default function DoctorClerking() {
                 <div>
                   <Sec>Encounter Summary</Sec>
                   {[["Complaint", clk.complaint], ["History", clk.hpc], ["Exam", clk.exam], ["Prov. Dx", clk.provDx ? clk.provCode + " — " + clk.provDx : ""], ["Final Dx", clk.finalDx ? clk.finalCode + " — " + clk.finalDx : ""], ["Plan", clk.plan], ["Disposition", clk.disp], ["Doctor", clk.doctorName + " " + (clk.doctorReg || "")]].map(([l, v]) => v ? (
-                    <div key={l} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid " + T.border }}>
+                    <div key={l} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid " + T.border, flexDirection: isMobile ? "column" : "row" }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: T.slateL, minWidth: 100, flexShrink: 0 }}>{l}</div>
                       <div style={{ fontSize: 13, color: T.navy }}>{v}</div>
                     </div>
@@ -286,7 +290,7 @@ export default function DoctorClerking() {
               )}
             </Card>
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 14 }}>
               <button onClick={() => setSelQNo(null)} style={BtnGhost}>← Back</button>
               <button onClick={handleSave} style={BtnGreen}>💾 Save Clerking</button>
             </div>

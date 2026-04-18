@@ -6,6 +6,7 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { PatientBanner, Card, Sec, FL, ErrBox, EmptyState, BtnGhost, BtnGreen, IS, TA } from "../../components/common/HMSComponents";
 import { T, TRIAGE_LEVELS } from "../../utils/hmsConstants";
 import { timeNow } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 const INIT_FORM = { lv: "3", bp: "", pulse: "", temp: "", rr: "", spo2: "", gcs: "", wt: "", ht: "", complaint: "", allergies: "", disability: "", chronic: "", nurse: "", time: "" };
 
@@ -13,6 +14,7 @@ export default function TriageAssessment() {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, saveTriage } = usePatients();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const initQueueNo = location.state?.queueNo || null;
   const [selectedQueueNo, setSelectedQueueNo] = useState(initQueueNo);
@@ -67,15 +69,25 @@ export default function TriageAssessment() {
         subtitle={active.queueNo + " · " + (active.name || "Patient")}
         action={<button onClick={() => navigate("/hms/triage")} style={BtnGhost}>← Dashboard</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, alignItems: "start" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr" : "1fr 300px", 
+          gap: 16, 
+          alignItems: "start" 
+        }}>
           {/* Main form */}
           <div>
             <PatientBanner p={active} />
             <ErrBox msg={trErr} />
             <Card>
               <Sec accent={T.red}>Vital Signs *</Sec>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 14 }}>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", 
+                gap: 12, 
+                marginBottom: 14 
+              }}>
                 {[["bp", "Blood Pressure", "e.g. 120/80"], ["pulse", "Pulse (bpm)", "60-100"],
                 ["temp", "Temp (°C)", "36.1-37.2"], ["rr", "Resp Rate", "/min"],
                 ["spo2", "SpO2 (%)", "95-100"], ["gcs", "GCS", "/15"],
@@ -99,31 +111,45 @@ export default function TriageAssessment() {
                 })()}
               </div>
               <FL label="Chief Complaint *" ch={<textarea value={trForm.complaint || ""} onChange={tf("complaint")} rows={2} placeholder="Patient's main complaint" style={TA(!trForm.complaint && trErr)} />} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
+                gap: 12, 
+                marginTop: 12 
+              }}>
                 <FL label="Known Allergies" ch={<input value={trForm.allergies || ""} onChange={tf("allergies")} placeholder="Drug / food allergies or NKDA" style={IS()} />} />
                 <FL label="Known Disability" ch={<input value={trForm.disability || ""} onChange={tf("disability")} placeholder="Physical, sensory, cognitive or None" style={IS()} />} />
-                <FL label="Known Chronic Condition" span={2} ch={<input value={trForm.chronic || ""} onChange={tf("chronic")} placeholder="e.g. Hypertension, Diabetes, Asthma or None" style={IS()} />} />
+                <FL label="Known Chronic Condition" span={isMobile ? 1 : 2} ch={<input value={trForm.chronic || ""} onChange={tf("chronic")} placeholder="e.g. Hypertension, Diabetes, Asthma or None" style={IS()} />} />
               </div>
             </Card>
 
             <Card>
               <Sec>ESI Triage Level</Sec>
-              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)", 
+                gap: 8, 
+                marginBottom: 14 
+              }}>
                 {TRIAGE_LEVELS.map(t => (
                   <button key={t.lv} onClick={() => setTrForm(p => ({ ...p, lv: t.lv }))}
                     style={{ flex: 1, padding: "10px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "'Outfit',sans-serif", background: t.bg, color: t.col, fontWeight: trForm.lv === t.lv ? 800 : 600, fontSize: 11, border: trForm.lv === t.lv ? "2px solid " + T.navy : "2px solid transparent" }}>
                     <div style={{ fontSize: 16, marginBottom: 3 }}>L{t.lv}</div>
-                    <div>{t.label}</div>
+                    <div style={{ fontSize: 9 }}>{t.label}</div>
                   </button>
                 ))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
+                gap: 12 
+              }}>
                 <FL label="Triage Nurse *" ch={<input value={trForm.nurse || ""} onChange={tf("nurse")} placeholder="Nurse name" style={IS(!trForm.nurse && trErr)} />} />
                 <FL label="Triage Time" ch={<input value={trForm.time || ""} onChange={tf("time")} style={IS()} />} />
               </div>
             </Card>
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
               <button onClick={() => navigate("/hms/triage")} style={BtnGhost}>← Back</button>
               <button onClick={handleSave} style={BtnGreen}>💾 Save Triage</button>
             </div>

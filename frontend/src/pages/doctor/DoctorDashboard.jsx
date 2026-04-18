@@ -4,10 +4,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)");
   const seenToday = patients.filter(p => p.status === "Pharmacy Pending" || p.status === "Discharged").length;
@@ -25,8 +27,13 @@ export default function DoctorDashboard() {
         action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Search patient history..." />}
       />
       
-      <div style={{ padding: "20px 24px" }}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Pending Consultation" value={waiting.length} icon="🩻" color={T.purple} />
           <StatCard label="Patients Seen Today" value={seenToday} icon="✅" color={T.green} />
           <StatCard label="Critical Alerts" value={critical} icon="🚨" color={T.red} />

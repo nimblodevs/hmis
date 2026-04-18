@@ -5,10 +5,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { Badge, Btn, BtnCyan, BtnGhost, ErrBox, FL, IS } from "../../components/common/HMSComponents";
 import { T, STATUS_META, TRIAGE_LEVELS } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function QueueDashboard() {
   const navigate = useNavigate();
   const { patients, addWalkIn } = usePatients();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const [qModal, setQModal] = useState(false);
   const [qName, setQName] = useState("");
@@ -32,10 +34,15 @@ export default function QueueDashboard() {
         subtitle={patients.length + " patient(s) today · " + new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         action={<button onClick={() => setQModal(true)} style={BtnCyan}>🎫 Walk-in</button>}
       />
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 8, marginBottom: 18 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "repeat(2,1fr)" : isTablet ? "repeat(4,1fr)" : "repeat(8,1fr)", 
+          gap: 8, 
+          marginBottom: 18 
+        }}>
           {statCounts.map(x => {
             const sm = STATUS_META[x.s] || { bg: "#e2e8f0", col: T.navy };
             return (
@@ -48,8 +55,8 @@ export default function QueueDashboard() {
         </div>
 
         {/* Patient table */}
-        <div style={{ background: T.card, borderRadius: 12, boxShadow: "0 1px 8px rgba(0,0,0,.06)", overflow: "hidden", border: "1px solid " + T.border }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ background: T.card, borderRadius: 12, boxShadow: "0 1px 8px rgba(0,0,0,.06)", overflow: "auto", border: "1px solid " + T.border }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 600 : "auto" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
                 {["Queue", "Patient", "Phone", "Category", "Status", "ESI", "Next Action"].map(h => (
@@ -106,8 +113,8 @@ export default function QueueDashboard() {
 
       {/* Walk-in Modal */}
       {qModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(7,24,40,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", width: 400, boxShadow: "0 24px 64px rgba(0,0,0,.3)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(7,24,40,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: isMobile ? "24px" : "28px 32px", width: "100%", maxWidth: 400, boxShadow: "0 24px 64px rgba(0,0,0,.3)" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: T.navy, marginBottom: 4 }}>🎫 New Walk-in Patient</div>
             <div style={{ fontSize: 12, color: T.slateL, marginBottom: 20 }}>Queue a new patient for triage</div>
             <ErrBox msg={qErr} />

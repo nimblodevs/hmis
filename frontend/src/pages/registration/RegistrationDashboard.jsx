@@ -4,10 +4,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, Btn, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function RegistrationDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.status === "Triaged");
   const regToday = patients.filter(p => p.status !== "Queued" && p.status !== "Triaged").length;
@@ -27,15 +29,20 @@ export default function RegistrationDashboard() {
         title="Registration Dashboard" 
         subtitle="Patient Files & Record Management" 
         action={
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column" : "row", width: isMobile ? "100%" : "auto" }}>
             <PatientSearch patients={patients} onSelect={handleSelect} placeholder="Search records..." />
-            <button onClick={startDirect} style={{ ...Btn, background: T.teal, color: "#fff" }}>📝 Manual Registration</button>
+            <button onClick={startDirect} style={{ ...Btn, background: T.teal, color: "#fff", width: isMobile ? "100%" : "auto" }}>📝 Manual Registration</button>
           </div>
         }
       />
       
-      <div style={{ padding: "20px 24px" }}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Awaiting Registration" value={waiting.length} icon="📋" color={T.blue} />
           <StatCard label="Registered Today" value={regToday} icon="✅" color={T.green} />
           <StatCard label="Total Records" value={newPatients} icon="🗄️" color={T.navy} />

@@ -4,10 +4,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function PharmacyDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.clerking?.orders?.rx?.drugs?.length > 0 && !p.clerking?.dispensed);
   const dispensedToday = patients.filter(p => p.clerking?.dispensed).length;
@@ -25,11 +27,16 @@ export default function PharmacyDashboard() {
         action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Search prescriptions..." />}
       />
       
-      <div style={{ padding: "20px 24px" }}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Pending Dispense" value={waiting.length} icon="💊" color={T.green} />
           <StatCard label="Dispensed Today" value={dispensedToday} icon="✅" color={T.blue} />
-          <StatCard label="Stock Alerts" value={stockAlerts} icon="⚠️" color={T.red} trend="Reorder items soon" />
+          <StatCard label="Stock Alerts" value={stockAlerts} icon="⚠️" color={T.red} trend={isMobile ? "" : "Reorder items soon"} />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Pharmacy Queue</div>

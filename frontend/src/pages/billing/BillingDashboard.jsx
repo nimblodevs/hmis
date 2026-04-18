@@ -5,10 +5,12 @@ import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
 import { fmtKES } from "../../utils/hmsHelpers";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function BillingDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.status === "Awaiting Billing");
   const paidToday = patients.filter(p => p.billing?.paid).length;
@@ -26,12 +28,17 @@ export default function BillingDashboard() {
         action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Manual Bill Search..." />}
       />
       
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
         {/* Stats Row */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Pending Bills" value={waiting.length} icon="💳" color={T.orange} />
           <StatCard label="Transactions Today" value={paidToday} icon="✅" color={T.green} />
-          <StatCard label="Total Revenue" value={fmtKES(totalRevenue)} icon="💰" color={T.blue} trend="+12% from yesterday" />
+          <StatCard label="Total Revenue" value={fmtKES(totalRevenue)} icon="💰" color={T.blue} trend={isMobile ? "" : "+12% from yesterday"} />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Active Billing Queue</div>

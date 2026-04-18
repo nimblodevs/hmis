@@ -4,10 +4,12 @@ import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
 import { StatCard, EmptyState, BtnGhost, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 
 export default function TriageDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
+  const { isMobile } = useBreakpoint();
 
   const waiting = patients.filter(p => p.status === "Queued");
   const todayCount = patients.filter(p => p.status !== "Queued").length;
@@ -25,12 +27,17 @@ export default function TriageDashboard() {
         action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Manual Triage Lookup..." />}
       />
       
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: isMobile ? "16px" : "20px 24px" }}>
         {/* Stats Row */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
           <StatCard label="Awaiting Triage" value={waiting.length} icon="🩺" color={T.orange} />
           <StatCard label="Triaged Today" value={todayCount} icon="✅" color={T.green} />
-          <StatCard label="High Priority" value={critical} icon="🚨" color={T.red} trend="Requires Immediate Action" />
+          <StatCard label="High Priority" value={critical} icon="🚨" color={T.red} trend={isMobile ? "" : "Requires Immediate Action"} />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Active Triage Queue</div>
