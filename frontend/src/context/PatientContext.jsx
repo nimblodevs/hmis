@@ -55,6 +55,23 @@ export function PatientProvider({ children }) {
     showToast("Registration Complete", id + " — " + reg.firstName + " " + reg.lastName + " registered.", "📝", onDone);
   };
 
+  const registerDirect = (reg, onDone) => {
+    const seq = patients.length + 1;
+    const id  = genNo("PAT-2026", seq);
+    const mrn = genNo("MRN-2026", seq);
+    const np = {
+      ...reg,
+      id, mrn,
+      queueNo: "D-" + pad(seq, 3), // D for Direct
+      queueTime: timeNow(),
+      registeredDate: today(),
+      status: "Registered",
+      triage: null, billing: null, clerking: null,
+    };
+    setPatients(prev => [...prev, np]);
+    showToast("Manual Registration Complete", id + " — " + reg.firstName + " " + reg.lastName + " registered manually.", "📝", onDone);
+  };
+
   // ── Billing ────────────────────────────────────────────────────────────────
   const saveBilling = (queueNo, { items, discount, method, note }, paid, onDone) => {
     const seq = patients.findIndex(p => p.queueNo === queueNo) + 1;
@@ -160,6 +177,7 @@ export function PatientProvider({ children }) {
       addWalkIn,
       saveTriage,
       saveRegistration,
+      registerDirect,
       saveBilling,
       saveClerking,
       saveLabResults,

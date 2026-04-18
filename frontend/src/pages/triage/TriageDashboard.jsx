@@ -2,44 +2,41 @@ import { useNavigate } from "react-router-dom";
 import { usePatients } from "../../context/PatientContext";
 import HMSLayout from "../../components/layout/HMSLayout";
 import HMSTopBar from "../../components/layout/HMSTopBar";
-import { StatCard, EmptyState, PatientSearch } from "../../components/common/HMSComponents";
+import { StatCard, EmptyState, BtnGhost, PatientSearch } from "../../components/common/HMSComponents";
 import { T } from "../../utils/hmsConstants";
 
-export default function LabDashboard() {
+export default function TriageDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
 
-  const waiting = patients.filter(p => p.status === "Lab Pending");
-  const processedToday = patients.filter(p => p.status === "With Doctor (Post-Lab)").length;
-  const critical = patients.filter(p => {
-    if (!p.clerking?.labResults) return false;
-    return Object.values(p.clerking.labResults).some(r => r.flag === "critical");
-  }).length;
+  const waiting = patients.filter(p => p.status === "Queued");
+  const todayCount = patients.filter(p => p.status !== "Queued").length;
+  const critical = patients.filter(p => p.triage?.lv === "1" || p.triage?.lv === "2").length;
 
   const handleSelect = (p) => {
-    navigate("/hms/lab/process", { state: { queueNo: p.queueNo } });
+    navigate("/hms/triage/assess", { state: { queueNo: p.queueNo } });
   };
 
   return (
     <HMSLayout>
       <HMSTopBar 
-        title="Laboratory Dashboard" 
-        subtitle="Specimen Processing & Diagnostics" 
-        action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Manual Lab Lookup..." />}
+        title="Triage Dashboard" 
+        subtitle="Vitals & Patient Prioritization" 
+        action={<PatientSearch patients={patients} onSelect={handleSelect} placeholder="Manual Triage Lookup..." />}
       />
       
       <div style={{ padding: "20px 24px" }}>
         {/* Stats Row */}
         <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-          <StatCard label="Pending Specimens" value={waiting.length} icon="🧪" color={T.orange} />
-          <StatCard label="Results Released" value={processedToday} icon="✅" color={T.green} />
-          <StatCard label="Critical Results" value={critical} icon="🚨" color={T.red} />
+          <StatCard label="Awaiting Triage" value={waiting.length} icon="🩺" color={T.orange} />
+          <StatCard label="Triaged Today" value={todayCount} icon="✅" color={T.green} />
+          <StatCard label="High Priority" value={critical} icon="🚨" color={T.red} trend="Requires Immediate Action" />
         </div>
 
-        <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Laboratory Queue</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Active Triage Queue</div>
         
         {waiting.length === 0 ? (
-          <EmptyState icon="🧪" msg="No specimens pending in the queue. All clear!" />
+          <EmptyState icon="🩺" msg="No patients awaiting triage. Great job!" />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
             {waiting.map(p => (
@@ -49,13 +46,13 @@ export default function LabDashboard() {
                 cursor: "pointer", transition: "all .2s", display: "flex", justifyContent: "space-between", alignItems: "center"
               }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: T.navy }}>{p.firstName || p.name} {p.lastName || ""}</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: T.navy }}>{p.name}</div>
                   <div style={{ fontSize: 11, color: T.slateL, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>
-                    {p.queueNo} · {p.clerking?.orders?.lab?.tests?.length || 0} test(s) · {p.clerking?.orders?.lab?.urgency || "Routine"}
+                    {p.queueNo} · {p.phone} · In at {p.queueTime}
                   </div>
                 </div>
                 <div style={{ background: T.teal + "11", color: T.teal, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-                  Process →
+                  Assess →
                 </div>
               </div>
             ))}

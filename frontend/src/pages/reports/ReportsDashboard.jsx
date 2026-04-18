@@ -10,20 +10,20 @@ export default function ReportsDashboard() {
   const navigate = useNavigate();
   const { patients } = usePatients();
 
-  const total     = patients.length;
+  const total = patients.length;
   const completed = patients.filter(p => p.status === "Completed").length;
-  const revenue   = patients.reduce((s, p) => s + (p.billing?.items?.reduce((si, i) => si + i.price * i.qty, 0) || 0) - (p.billing?.discount || 0), 0);
-  const paid      = patients.filter(p => p.billing?.paid).length;
-  const labDone   = patients.filter(p => p.clerking?.labNo).length;
-  const rxDone    = patients.filter(p => p.clerking?.dispensed).length;
+  const revenue = patients.reduce((s, p) => s + (p.billing?.items?.reduce((si, i) => si + i.price * i.qty, 0) || 0) - (p.billing?.discount || 0), 0);
+  const paid = patients.filter(p => p.billing?.paid).length;
+  const labDone = patients.filter(p => p.clerking?.labNo).length;
+  const rxDone = patients.filter(p => p.clerking?.dispensed).length;
 
   const stats = [
-    { label: "Total Patients",     value: total,               icon: "👥", col: T.navy,   bg: "#f1f5f9" },
-    { label: "Completed",          value: completed,            icon: "✅", col: T.green,  bg: "#dcfce7" },
-    { label: "Revenue Today",      value: fmtKES(revenue),      icon: "💰", col: T.blue,   bg: "#dbeafe" },
-    { label: "Paid Invoices",      value: paid,                 icon: "💳", col: "#0e7490",bg: "#cffafe" },
-    { label: "Lab Reports",        value: labDone,              icon: "🧪", col: T.amber,  bg: "#fef3c7" },
-    { label: "Prescriptions Dispensed", value: rxDone,         icon: "💊", col: T.purple, bg: "#f3e8ff" },
+    { label: "Total Patients", value: total, icon: "👥", col: T.navy, bg: "#f1f5f9" },
+    { label: "Completed", value: completed, icon: "✅", col: T.green, bg: "#dcfce7" },
+    { label: "Revenue Today", value: fmtKES(revenue), icon: "💰", col: T.blue, bg: "#dbeafe" },
+    { label: "Paid Invoices", value: paid, icon: "💳", col: "#0e7490", bg: "#cffafe" },
+    { label: "Lab Reports", value: labDone, icon: "🧪", col: T.amber, bg: "#fef3c7" },
+    { label: "Prescriptions Dispensed", value: rxDone, icon: "💊", col: T.purple, bg: "#f3e8ff" },
   ];
 
   const statusCounts = Object.keys(STATUS_META).map(s => ({
@@ -93,7 +93,7 @@ export default function ReportsDashboard() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Queue","Patient","Age","Sex","Category","Status","Doctor","Invoice","Lab No","Rx No"].map(h => (
+                {["Queue", "Patient", "Age", "Sex", "Category", "Status", "Doctor", "Invoice", "Lab No", "Rx No"].map(h => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, fontFamily: "'DM Mono',monospace", letterSpacing: .8, borderBottom: "1px solid " + T.border }}>{h}</th>
                 ))}
               </tr>

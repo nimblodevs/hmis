@@ -1,35 +1,49 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { T, FONT_LINK } from "../../utils/hmsConstants";
+import { T } from "../../utils/hmsConstants";
 import { usePatients } from "../../context/PatientContext";
 
 const NAV = [
-  { key: "queue",    label: "Queue",       emoji: "🎫", path: "/hms/queue"    },
-  { key: "triage",   label: "Triage",      emoji: "🩺", path: "/hms/triage"   },
-  { key: "register", label: "Registration",emoji: "📝", path: "/hms/register" },
-  { key: "billing",  label: "Billing",     emoji: "💳", path: "/hms/billing"  },
-  { key: "doctor",   label: "Doctor",      emoji: "🩻", path: "/hms/doctor"   },
-  { key: "lab",      label: "Laboratory",  emoji: "🧪", path: "/hms/lab"      },
-  { key: "pharmacy", label: "Pharmacy",    emoji: "💊", path: "/hms/pharmacy" },
-  { key: "reports",  label: "Reports",     emoji: "📊", path: "/hms/reports"  },
+  { key: "queue", label: "Queue", emoji: "🎫", path: "/hms/queue" },
+  { key: "triage", label: "Triage", emoji: "🩺", path: "/hms/triage" },
+  { key: "register", label: "Registration", emoji: "📝", path: "/hms/register" },
+  { key: "billing", label: "Billing", emoji: "💳", path: "/hms/billing" },
+  { key: "doctor", label: "Doctor", emoji: "🩻", path: "/hms/doctor" },
+  { key: "lab", label: "Laboratory", emoji: "🧪", path: "/hms/lab" },
+  { key: "pharmacy", label: "Pharmacy", emoji: "💊", path: "/hms/pharmacy" },
+  { key: "reports", label: "Reports", emoji: "📊", path: "/hms/reports" },
 ];
 
 export default function HMSSidebar() {
-  const navigate   = useNavigate();
-  const location   = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { patients } = usePatients();
 
   const cnt = {
-    queue:    patients.filter(p => p.status === "Queued").length,
-    triage:   patients.filter(p => p.status === "Queued").length,
+    queue: patients.filter(p => p.status === "Queued").length,
+    triage: patients.filter(p => p.status === "Queued").length,
     register: patients.filter(p => p.status === "Triaged").length,
-    billing:  patients.filter(p => p.status === "Registered").length,
-    doctor:   patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)").length,
-    lab:      patients.filter(p => p.status === "Lab Pending").length,
+    billing: patients.filter(p => p.status === "Registered").length,
+    doctor: patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)").length,
+    lab: patients.filter(p => p.status === "Lab Pending").length,
     pharmacy: patients.filter(p => p.clerking?.orders?.rx?.drugs?.length > 0 && !p.clerking?.dispensed).length,
-    reports:  0,
+    reports: 0,
   };
 
-  const currentKey = NAV.find(n => location.pathname.startsWith(n.path))?.key || "queue";
+  // Map any route prefix to its sidebar key
+  const routeMap = [
+    { prefix: "/hms/triage",       key: "triage"   },
+    { prefix: "/hms/register",     key: "register" },
+    { prefix: "/hms/registration", key: "register" },
+    { prefix: "/hms/billing",      key: "billing"  },
+    { prefix: "/hms/doctor",       key: "doctor"   },
+    { prefix: "/hms/lab",          key: "lab"      },
+    { prefix: "/hms/laboratory",   key: "lab"      },
+    { prefix: "/hms/pharmacy",     key: "pharmacy" },
+    { prefix: "/hms/reports",      key: "reports"  },
+    { prefix: "/hms/queue",        key: "queue"    },
+  ];
+  const matched = routeMap.find(r => location.pathname.startsWith(r.prefix));
+  const currentKey = matched?.key || "queue";
 
   return (
     <div style={{
@@ -37,15 +51,6 @@ export default function HMSSidebar() {
       background: "linear-gradient(180deg," + T.navy + " 0%," + T.navyM + " 60%,#0a1f38 100%)",
       display: "flex", flexDirection: "column", boxShadow: "4px 0 24px rgba(0,0,0,.4)", overflow: "hidden",
     }}>
-      <link rel="stylesheet" href={FONT_LINK} />
-      <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes spin    { to { transform:rotate(360deg) } }
-        * { box-sizing:border-box }
-        ::-webkit-scrollbar { width:4px }
-        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:4px }
-      `}</style>
-
       {/* Logo */}
       <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -69,7 +74,7 @@ export default function HMSSidebar() {
       <div style={{ flex: 1, overflowY: "auto", padding: "10px 10px" }}>
         {NAV.map(n => {
           const active = currentKey === n.key;
-          const badge  = cnt[n.key];
+          const badge = cnt[n.key];
           return (
             <button key={n.key} onClick={() => navigate(n.path)}
               style={{

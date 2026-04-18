@@ -11,9 +11,9 @@ export default function QueueDashboard() {
   const { patients, addWalkIn } = usePatients();
 
   const [qModal, setQModal] = useState(false);
-  const [qName,  setQName]  = useState("");
+  const [qName, setQName] = useState("");
   const [qPhone, setQPhone] = useState("");
-  const [qErr,   setQErr]   = useState("");
+  const [qErr, setQErr] = useState("");
 
   const saveWalkIn = () => {
     if (!qName.trim() || !qPhone.trim()) { setQErr("Name and phone required."); return; }
@@ -21,7 +21,7 @@ export default function QueueDashboard() {
     setQModal(false); setQName(""); setQPhone(""); setQErr("");
   };
 
-  const statCounts = ["All","Queued","Triaged","Registered","Billed","With Doctor","Lab Pending","Completed"].map(s => ({
+  const statCounts = ["All", "Queued", "Triaged", "Registered", "Billed", "With Doctor", "Lab Pending", "Completed"].map(s => ({
     s, n: s === "All" ? patients.length : patients.filter(p => p.status === s).length,
   }));
 
@@ -52,7 +52,7 @@ export default function QueueDashboard() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Queue","Patient","Phone","Category","Status","ESI","Next Action"].map(h => (
+                {["Queue", "Patient", "Phone", "Category", "Status", "ESI", "Next Action"].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.slateL, fontFamily: "'DM Mono',monospace", letterSpacing: .8, borderBottom: "1px solid " + T.border }}>{h}</th>
                 ))}
               </tr>
@@ -62,12 +62,12 @@ export default function QueueDashboard() {
                 const sm = STATUS_META[p.status] || STATUS_META["Queued"];
                 const tl = TRIAGE_LEVELS.find(t => t.lv === p.triage?.lv);
                 const actions = [];
-                if (p.status === "Queued")                                     actions.push({ lbl: "🩺 Triage",   path: "/hms/triage",   col: "#ea580c", bg: "#ffedd5" });
-                if (p.status === "Triaged")                                    actions.push({ lbl: "📝 Register", path: "/hms/register", col: "#b45309", bg: "#fef9c3" });
-                if (p.status === "Registered")                                 actions.push({ lbl: "💳 Bill",     path: "/hms/billing",  col: T.blue,    bg: "#dbeafe" });
-                if (p.status === "Billed")                                     actions.push({ lbl: "🩻 Doctor",   path: "/hms/doctor",   col: T.purple,  bg: "#f3e8ff" });
-                if (p.status === "Lab Pending")                                actions.push({ lbl: "🧪 Lab",      path: "/hms/lab",      col: T.amber,   bg: "#fef3c7" });
-                if (p.status === "With Doctor (Post-Lab)")                     actions.push({ lbl: "🩻 Doctor",   path: "/hms/doctor",   col: T.teal,    bg: "#cffafe" });
+                if (p.status === "Queued") actions.push({ lbl: "🩺 Triage", path: "/hms/triage", col: "#ea580c", bg: "#ffedd5" });
+                if (p.status === "Triaged") actions.push({ lbl: "📝 Register", path: "/hms/register", col: "#b45309", bg: "#fef9c3" });
+                if (p.status === "Registered") actions.push({ lbl: "💳 Bill", path: "/hms/billing", col: T.blue, bg: "#dbeafe" });
+                if (p.status === "Billed") actions.push({ lbl: "🩻 Doctor", path: "/hms/doctor", col: T.purple, bg: "#f3e8ff" });
+                if (p.status === "Lab Pending") actions.push({ lbl: "🧪 Lab", path: "/hms/lab", col: T.amber, bg: "#fef3c7" });
+                if (p.status === "With Doctor (Post-Lab)") actions.push({ lbl: "🩻 Doctor", path: "/hms/doctor", col: T.teal, bg: "#cffafe" });
                 if (p.status === "Completed" && p.clerking?.orders?.rx?.drugs?.length > 0 && !p.clerking?.dispensed)
                   actions.push({ lbl: "💊 Pharmacy", path: "/hms/pharmacy", col: T.green, bg: "#dcfce7" });
 

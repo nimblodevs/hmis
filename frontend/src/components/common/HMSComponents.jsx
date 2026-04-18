@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { T, FLOW, STATUS_META, TRIAGE_LEVELS, FLAG_STYLE } from '../../utils/hmsConstants';
 import { calcAge, hue, fmtKES, genNo } from '../../utils/hmsHelpers';
 
@@ -6,20 +7,35 @@ export const inputBase = {
   width: "100%", padding: "9px 12px", borderRadius: 8, fontFamily: "'Outfit',sans-serif",
   fontSize: 13, outline: "none", boxSizing: "border-box", transition: "border-color .15s",
 };
-export const IS  = (err) => ({ ...inputBase, border: "1.5px solid " + (err ? "#fca5a5" : T.border), background: "#fff" });
-export const SS  = { ...IS(), background: "#fff" };
-export const TA  = (err) => ({ ...IS(err), resize: "vertical", minHeight: 72 });
+export const IS = (err) => ({ ...inputBase, border: "1.5px solid " + (err ? "#fca5a5" : T.border), background: "#fff" });
+export const SS = { ...IS(), background: "#fff" };
+export const TA = (err) => ({ ...IS(err), resize: "vertical", minHeight: 72 });
 export const Btn = {
   padding: "10px 20px", border: "none", borderRadius: 9, cursor: "pointer",
   fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 600, transition: "all .15s",
 };
-export const BtnPrimary = { ...Btn, background: T.navy,  color: "#fff" };
-export const BtnGreen   = { ...Btn, background: T.green, color: "#fff" };
-export const BtnCyan    = { ...Btn, background: T.cyan,  color: "#fff" };
-export const BtnRed     = { ...Btn, background: T.red,   color: "#fff" };
-export const BtnGhost   = { ...Btn, background: "#fff",  color: T.slate, border: "1.5px solid " + T.border };
+export const BtnPrimary = { ...Btn, background: T.navy, color: "#fff" };
+export const BtnGreen = { ...Btn, background: T.green, color: "#fff" };
+export const BtnCyan = { ...Btn, background: T.cyan, color: "#fff" };
+export const BtnRed = { ...Btn, background: T.red, color: "#fff" };
+export const BtnGhost = { ...Btn, background: "#fff", color: T.slate, border: "1.5px solid " + T.border };
 
 // ─── Atoms ────────────────────────────────────────────────────────────────────
+export function StatCard({ label, value, icon, color = T.navy, trend }) {
+  return (
+    <div style={{
+      background: T.card, borderRadius: 12, padding: "18px 20px", border: "1px solid " + T.border,
+      boxShadow: "0 1px 6px rgba(0,0,0,.05)", flex: 1, minWidth: 160,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.slate, textTransform: "uppercase", letterSpacing: .8 }}>{label}</div>
+        <div style={{ fontSize: 20 }}>{icon}</div>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 900, color: color }}>{value}</div>
+      {trend && <div style={{ fontSize: 10, color: T.green, marginTop: 4, fontWeight: 700 }}>{trend}</div>}
+    </div>
+  );
+}
 export function Badge({ label, col, bg, sm }) {
   return (
     <span style={{
@@ -163,7 +179,7 @@ export function FlowBar({ status }) {
 export function PatientBanner({ p }) {
   if (!p) return null;
   const sm = STATUS_META[p.status] || STATUS_META["Queued"];
-  const h  = hue(p.id || p.queueNo);
+  const h = hue(p.id || p.queueNo);
   return (
     <div style={{
       background: T.card, borderRadius: 11, padding: "13px 16px", marginBottom: 12,
@@ -189,9 +205,9 @@ export function PatientBanner({ p }) {
       </div>
       <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         {p.dateOfBirth && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Age</div><div style={{ fontSize: 13, fontWeight: 600 }}>{calcAge(p.dateOfBirth)} yrs</div></div>}
-        {p.gender     && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Sex</div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.gender}</div></div>}
+        {p.gender && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Sex</div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.gender}</div></div>}
         {p.bloodGroup && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Blood</div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.bloodGroup}</div></div>}
-        {p.category   && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Category</div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.category}</div></div>}
+        {p.category && <div><div style={{ fontSize: 9, color: T.slateL, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Category</div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.category}</div></div>}
         <Badge label={p.status} col={sm.col} bg={sm.bg} sm />
       </div>
     </div>
@@ -201,12 +217,12 @@ export function PatientBanner({ p }) {
 export function RefNums({ p }) {
   if (!p) return null;
   const chips = [
-    p.billing?.invoiceNo && { lbl: "Invoice",      val: p.billing.invoiceNo, col: "#1d4ed8", bg: "#eff6ff", bd: "#bfdbfe", badge: p.billing.paid ? { t: "PAID", bg: "#dcfce7", c: "#15803d" } : { t: "UNPAID", bg: "#fef3c7", c: "#b45309" } },
-    p.billing?.receiptNo && { lbl: "Receipt",       val: p.billing.receiptNo, col: "#15803d", bg: "#f0fdf4", bd: "#bbf7d0" },
-    p.clerking?.consNo   && { lbl: "Consultation",  val: p.clerking.consNo,   col: "#7c3aed", bg: "#f5f3ff", bd: "#ddd6fe" },
-    p.clerking?.labNo    && { lbl: "Lab Report",    val: p.clerking.labNo,    col: "#0f766e", bg: "#f0fdfa", bd: "#99f6e4" },
-    p.clerking?.rxNo     && { lbl: "Rx",            val: p.clerking.rxNo,     col: "#15803d", bg: "#f0fdf4", bd: "#86efac", badge: { t: "DISPENSED", bg: "#dcfce7", c: "#166534" } },
-    p.billing?.billedBy  && { lbl: "Billed By",     val: p.billing.billedBy,  col: T.slate,   bg: "#f8fafc", bd: T.border },
+    p.billing?.invoiceNo && { lbl: "Invoice", val: p.billing.invoiceNo, col: "#1d4ed8", bg: "#eff6ff", bd: "#bfdbfe", badge: p.billing.paid ? { t: "PAID", bg: "#dcfce7", c: "#15803d" } : { t: "UNPAID", bg: "#fef3c7", c: "#b45309" } },
+    p.billing?.receiptNo && { lbl: "Receipt", val: p.billing.receiptNo, col: "#15803d", bg: "#f0fdf4", bd: "#bbf7d0" },
+    p.clerking?.consNo && { lbl: "Consultation", val: p.clerking.consNo, col: "#7c3aed", bg: "#f5f3ff", bd: "#ddd6fe" },
+    p.clerking?.labNo && { lbl: "Lab Report", val: p.clerking.labNo, col: "#0f766e", bg: "#f0fdfa", bd: "#99f6e4" },
+    p.clerking?.rxNo && { lbl: "Rx", val: p.clerking.rxNo, col: "#15803d", bg: "#f0fdf4", bd: "#86efac", badge: { t: "DISPENSED", bg: "#dcfce7", c: "#166534" } },
+    p.billing?.billedBy && { lbl: "Billed By", val: p.billing.billedBy, col: T.slate, bg: "#f8fafc", bd: T.border },
   ].filter(Boolean);
   if (!chips.length) return null;
   return (
@@ -246,6 +262,45 @@ export function LabResultGrid({ labResults }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export function PatientSearch({ patients, onSelect, placeholder = "Search patient..." }) {
+  const [q, setQ] = useState("");
+  const filtered = q.length < 2 ? [] : patients.filter(p => 
+    (p.name || "").toLowerCase().includes(q.toLowerCase()) ||
+    (p.firstName || "").toLowerCase().includes(q.toLowerCase()) ||
+    (p.lastName || "").toLowerCase().includes(q.toLowerCase()) ||
+    (p.id || "").toLowerCase().includes(q.toLowerCase()) ||
+    (p.phone || "").includes(q)
+  ).slice(0, 8);
+
+  return (
+    <div style={{ position: "relative", width: 280 }}>
+      <input 
+        value={q} 
+        onChange={e => setQ(e.target.value)} 
+        placeholder={placeholder} 
+        style={IS()} 
+      />
+      {filtered.length > 0 && (
+        <div style={{ 
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100,
+          background: "#fff", border: "1px solid " + T.border, borderRadius: 10,
+          boxShadow: "0 10px 25px rgba(0,0,0,.15)", marginTop: 4, overflow: "hidden"
+        }}>
+          {filtered.map(p => (
+            <div key={p.queueNo} onClick={() => { onSelect(p); setQ(""); }} style={{
+              padding: "10px 14px", borderBottom: "1px solid #f8fafc", cursor: "pointer",
+              transition: "background .15s",
+            }} onMouseOver={e => e.currentTarget.style.background = "#f0f9ff"} onMouseOut={e => e.currentTarget.style.background = "#fff"}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: T.navy }}>{p.firstName || p.name} {p.lastName || ""}</div>
+              <div style={{ fontSize: 10, color: T.slateL, fontFamily: "'DM Mono',monospace" }}>{p.id || p.queueNo} · {p.phone}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
