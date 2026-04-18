@@ -290,7 +290,7 @@ const CreateToken = () => {
         <div className="mb-8 flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-4">
-              <Ticket className="w-9 h-9 text-primary" /> Hospital Intake & Token Issuance
+              <Ticket className="w-9 h-9 text-primary" /> MediCore HMS Intake
             </h1>
             <p className="text-silver-500 text-base mt-2">Generate patient queue tickets and register walk-ins for hospital services.</p>
           </div>

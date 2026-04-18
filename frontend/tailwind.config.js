@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Outfit', 'sans-serif'],
+      },
       colors: {
         clay: {
           50: '#f7f6f5',

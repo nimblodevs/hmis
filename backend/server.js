@@ -23,7 +23,6 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/patients', require('./routes/patients'));
-app.use('/api/icd10', require('./routes/icd'));
 app.use('/api/tokens', require('./routes/tokens'));
 app.use('/api/walkins', require('./routes/walkins'));
 
@@ -44,7 +43,7 @@ io.on('connection', (socket) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('HMS API is running');
+  res.send('HMS Token Kiosk API is running');
 });
 
 server.listen(PORT, () => {
