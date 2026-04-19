@@ -1,435 +1,502 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx-js-style';
 import { usePatients } from '../../../context/PatientContext';
 import HMSLayout from '../../../components/layout/HMSLayout';
 import HMSTopBar from '../../../components/layout/HMSTopBar';
-import { Card, Sec, EmptyState, BtnGhost, IS, SS, BtnGreen, BtnRed } from '../../../components/common/HMSComponents';
+import { EmptyState } from '../../../components/common/HMSComponents';
 import { T, HOSPITAL_INFO } from '../../../utils/hmsConstants';
 import { fmtKES, printReceipt } from '../../../utils/hmsHelpers';
-import { useBreakpoint } from '../../../hooks/useBreakpoint';
+import { exportExcel, exportPDF } from './ExportReport';
+
+// ─── Payment method config ────────────────────────────────────────────────────
+const METHOD_CONFIG = {
+  'Cash': { icon: '💵', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', bar: '#22c55e' },
+  'M-Pesa': { icon: '📲', bg: '#f0fdf4', color: '#14532d', border: '#86efac', bar: '#16a34a' },
+  'POS / Card': { icon: '💳', bg: '#eff6ff', color: '#1e3a8a', border: '#bfdbfe', bar: '#3b82f6' },
+  'Cheque': { icon: '📋', bg: '#fffbeb', color: '#78350f', border: '#fde68a', bar: '#f59e0b' },
+};
+const ALL_METHODS = Object.keys(METHOD_CONFIG);
+
+// ─── Shared style objects ─────────────────────────────────────────────────────
+const S = {
+  card: {
+    background: '#fff',
+    borderRadius: 16,
+    border: '1px solid #e2e8f0',
+    padding: '20px',
+    boxShadow: '0 1px 4px rgba(0,0,0,.05)',
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: '#94a3b8',
+    marginBottom: 16,
+  },
+  infoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: 12,
+  },
+  ghostBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+    border: '1px solid #e2e8f0', background: '#fff', color: '#475569', cursor: 'pointer',
+  },
+  greenBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700,
+    border: 'none', background: 'linear-gradient(135deg,#059669,#047857)', color: '#fff', cursor: 'pointer',
+  },
+  smallGhostBtn: {
+    padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 600,
+    border: '1px solid #e2e8f0', background: '#fff', color: '#475569', cursor: 'pointer',
+  },
+  smallGreenBtn: {
+    padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700,
+    border: 'none', background: '#059669', color: '#fff', cursor: 'pointer',
+  },
+  input: {
+    flex: 2, minWidth: 150,
+    border: '1px solid #e2e8f0', borderRadius: 10,
+    padding: '7px 12px', fontSize: 12, color: '#334155',
+    outline: 'none', background: '#fff',
+  },
+  select: {
+    flex: 1, minWidth: 130,
+    border: '1px solid #e2e8f0', borderRadius: 10,
+    padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#334155',
+    outline: 'none', background: '#fff',
+  },
+  th: {
+    padding: '11px 14px',
+    fontSize: 10, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.07em',
+    color: '#94a3b8', background: '#f8fafc',
+    whiteSpace: 'nowrap', textAlign: 'left',
+  },
+  td: { padding: '11px 14px', fontSize: 12 },
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function KpiCard({ label, value, sub, accentBg, accentBorder }) {
+  return (
+    <div style={{ ...S.card, background: accentBg || '#fff', borderColor: accentBorder || '#e2e8f0' }}>
+      <div style={S.sectionLabel}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: T.navy, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function MethodBar({ label, amount, total }) {
+  const cfg = METHOD_CONFIG[label] || { icon: '💰', bar: '#94a3b8' };
+  const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{cfg.icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>{label}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#1e293b' }}>{fmtKES(amount)}</span>
+        </div>
+        <div style={{ height: 7, borderRadius: 99, background: '#f1f5f9', overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: 99, background: cfg.bar, width: `${pct}%` }} />
+        </div>
+        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{pct}% of total</div>
+      </div>
+    </div>
+  );
+}
+
+function MethodBadge({ method }) {
+  const cfg = METHOD_CONFIG[method] || { icon: '💰', bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+      background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+      whiteSpace: 'nowrap',
+    }}>
+      {cfg.icon} {method}
+    </span>
+  );
+}
+
+function InfoRow({ label, value, mono, valueStyle }) {
+  return (
+    <div style={S.infoRow}>
+      <span style={{ color: '#94a3b8' }}>{label}</span>
+      <span style={{ fontWeight: 600, color: '#1e293b', fontFamily: mono ? "'DM Mono',monospace" : undefined, ...valueStyle }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ─── Receipt Modal ─────────────────────────────────────────────────────────────
+
+function ReceiptModal({ rec, onClose }) {
+  if (!rec) return null;
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        background: 'rgba(7,24,40,.65)', backdropFilter: 'blur(6px)',
+      }}
+    >
+      <div style={{
+        background: '#fff', borderRadius: 24, width: '100%', maxWidth: 420,
+        boxShadow: '0 32px 80px rgba(0,0,0,.35)', overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #071828 0%, #0d3259 100%)',
+          padding: '28px 32px 24px', textAlign: 'center', color: '#fff',
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '.02em' }}>{HOSPITAL_INFO.name}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, opacity: .65, marginTop: 2 }}>{HOSPITAL_INFO.branch}</div>
+          <div style={{ fontSize: 10, opacity: .45, marginTop: 4, lineHeight: 1.6 }}>
+            {HOSPITAL_INFO.address} · {HOSPITAL_INFO.phone}
+          </div>
+          <div style={{ display: 'inline-block', marginTop: 14, background: 'rgba(255,255,255,.12)', borderRadius: 10, padding: '5px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase' }}>Official Receipt</div>
+          </div>
+          <div style={{ fontSize: 10, opacity: .45, marginTop: 4, fontFamily: "'DM Mono',monospace" }}>
+            {rec.id} · Shift: {rec.shiftId}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Patient */}
+          <div style={{ background: '#f8fafc', borderRadius: 12, border: '1px solid #f1f5f9', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <InfoRow label="Patient ID" value={rec.patientId || '—'} mono />
+            <InfoRow label="Patient" value={`${rec.patient}${rec.age ? ` (${rec.age} yrs)` : ''}`} />
+            <InfoRow label="Bill No" value={rec.billNo || rec.invoiceNo || '—'} mono />
+          </div>
+
+          {/* Items */}
+          {rec.items?.length > 0 && (
+            <div>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>Itemized Services</div>
+              <div style={{ border: '1px solid #f1f5f9', borderRadius: 10, maxHeight: 140, overflowY: 'auto' }}>
+                {rec.items.map((it, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 14px', fontSize: 12,
+                    borderBottom: idx < rec.items.length - 1 ? '1px solid #f8fafc' : 'none',
+                  }}>
+                    <span style={{ color: '#334155', flex: 1 }}>{it.qty}× {it.name}</span>
+                    <span style={{ fontWeight: 700, color: '#1e293b' }}>{fmtKES(it.price * it.qty)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Payment */}
+          <div style={{ background: '#f8fafc', borderRadius: 12, border: '1px solid #f1f5f9', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>Method</span>
+              <MethodBadge method={rec.method} />
+            </div>
+            {rec.ref && <InfoRow label="Reference" value={rec.ref} mono />}
+            {rec.discount > 0 && (
+              <InfoRow label="Discount" value={`-${fmtKES(rec.discount)}`} valueStyle={{ color: '#dc2626', fontWeight: 800 }} />
+            )}
+          </div>
+
+          {/* Total */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 14, padding: '14px 18px',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#166534' }}>Total Paid</span>
+            <span style={{ fontSize: 22, fontWeight: 900, color: '#15803d' }}>{fmtKES(rec.amount)}</span>
+          </div>
+
+          <InfoRow label="Served By" value={rec.cashier || '—'} />
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: 12, padding: '0 32px 28px' }}>
+          <button onClick={onClose} style={{ ...S.ghostBtn, flex: 1, justifyContent: 'center' }}>Close</button>
+          <button
+            onClick={() => { printReceipt(rec, true); onClose(); }}
+            style={{ ...S.greenBtn, flex: 2, justifyContent: 'center' }}
+          >
+            🖨 Print Receipt
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ShiftSummary() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { shifts } = usePatients();
-  const { isMobile } = useBreakpoint();
 
-  const [q, setQ] = useState("");
-  const [method, setMethod] = useState("");
+  const [q, setQ] = useState('');
+  const [method, setMethod] = useState('');
   const [viewRec, setViewRec] = useState(null);
 
   const shift = shifts.find(s => s.id === id);
 
-  if (!shift) {
-    return (
-      <HMSLayout>
-        <HMSTopBar title="Shift Not Found" action={<button onClick={() => navigate("/hms/cashier")} style={BtnGhost}>← Dashboard</button>} />
-        <div style={{ padding: 40 }}><EmptyState icon="❓" msg="The requested shift record could not be found." /></div>
-      </HMSLayout>
-    );
-  }
+  // All hooks declared before any conditional return ─────────────────────────
+  const totals = useMemo(() => {
+    if (!shift) return {};
+    return ALL_METHODS.reduce((acc, m) => {
+      acc[m] = shift.receipts.filter(r => r.method === m).reduce((s, r) => s + r.amount, 0);
+      return acc;
+    }, {});
+  }, [shift]);
 
-  const totals = {
-    Cash: shift.receipts.filter(r => r.method === "Cash").reduce((a, b) => a + b.amount, 0),
-    "M-Pesa": shift.receipts.filter(r => r.method === "M-Pesa").reduce((a, b) => a + b.amount, 0),
-    "POS / Card": shift.receipts.filter(r => r.method === "POS / Card").reduce((a, b) => a + b.amount, 0),
-    Cheque: shift.receipts.filter(r => r.method === "Cheque").reduce((a, b) => a + b.amount, 0),
-  };
-  const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+  const grandTotal = useMemo(() => Object.values(totals).reduce((a, b) => a + b, 0), [totals]);
 
   const filteredReceipts = useMemo(() => {
     if (!shift) return [];
     return shift.receipts.filter(r => {
-      const matchesQ = !q || r.patient.toLowerCase().includes(q.toLowerCase()) || r.id.toLowerCase().includes(q.toLowerCase()) || (r.patientId && r.patientId.toLowerCase().includes(q.toLowerCase()));
-      const matchesM = !method || r.method === method;
-      return matchesQ && matchesM;
+      const ql = q.toLowerCase();
+      const matchQ = !q
+        || r.patient.toLowerCase().includes(ql)
+        || r.id.toLowerCase().includes(ql)
+        || (r.patientId && r.patientId.toLowerCase().includes(ql));
+      const matchM = !method || r.method === method;
+      return matchQ && matchM;
     });
   }, [shift, q, method]);
 
-  // ── Excel Export ─────────────────────────────────────────────────
-  const exportExcel = () => {
-    const formatDateStr = (dateVal) => {
-      if (!dateVal) return '';
-      const d = new Date(dateVal);
-      return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString('en-GB')}`;
-    };
+  const filteredTotal = useMemo(
+    () => filteredReceipts.reduce((s, r) => s + r.amount, 0),
+    [filteredReceipts]
+  );
 
-    const aoa = [
-      ["Service Provider:", `${HOSPITAL_INFO.name}`.toUpperCase()],
-      ["Location:", `${HOSPITAL_INFO.branch}`.toUpperCase()],
-      ["Shift ID:", shift.id],
-      ["Time Period:", "From", formatDateStr(shift.openedAt), "To", shift.closedAt ? formatDateStr(shift.closedAt) : "Still Running"],
-      ["Operator:", shift.officer, "Date of Report:", formatDateStr(new Date())],
-      ["Opening Float:", shift.float, "Net Expected:", grandTotal + shift.float, "Total Collected:", grandTotal]
-    ];
+  // Not found ────────────────────────────────────────────────────────────────
+  if (!shift) {
+    return (
+      <HMSLayout>
+        <HMSTopBar
+          title="Shift Not Found"
+          action={<button onClick={() => navigate('/hms/cashier')} style={S.ghostBtn}>← Dashboard</button>}
+        />
+        <div style={{ padding: 40 }}>
+          <EmptyState icon="❓" msg="The requested shift record could not be found." />
+        </div>
+      </HMSLayout>
+    );
+  }
 
-    aoa.push([]); // Empty row for spacing
-
-    // Headers
-    aoa.push(['Time', 'Receipt No', 'Bill No', 'Patient ID', 'Patient Name', 'Clinic', 'Method', 'Method Ref', 'Amount (KES)', 'Served By']);
-
-    // Data
-    filteredReceipts.forEach(r => {
-      aoa.push([
-        new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        r.id,
-        r.billNo || r.invoiceNo || '',
-        r.patientId || '',
-        r.patient,
-        r.clinic || 'General OPD',
-        r.method,
-        r.ref || '',
-        r.amount,
-        r.cashier || ''
-      ]);
-    });
-
-    // Summary rows at the bottom
-    aoa.push([]);
-    const sumTitleRow = new Array(10).fill(null);
-    sumTitleRow[7] = '── SUMMARY ──';
-    aoa.push(sumTitleRow);
-
-    Object.entries(totals).forEach(([m, amt]) => {
-      const row = new Array(10).fill(null);
-      row[7] = m;
-      row[8] = amt;
-      aoa.push(row);
-    });
-
-    const gtRow = new Array(10).fill(null);
-    gtRow[7] = 'Grand Total';
-    gtRow[8] = grandTotal;
-    aoa.push(gtRow);
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    // Styling configuration
-    const hex = (c) => c.replace('#', '').toUpperCase();
-    
-    const labelStyle = {
-      font: { bold: true, color: { rgb: "000000" } },
-      fill: { fgColor: { rgb: hex(T.bg) } },
-      border: { top: { style: "thin", color: { rgb: hex(T.border) } }, bottom: { style: "thin", color: { rgb: hex(T.border) } }, left: { style: "thin", color: { rgb: hex(T.border) } }, right: { style: "thin", color: { rgb: hex(T.border) } } }
-    };
-    const valStyle = {
-      font: { color: { rgb: "333333" } },
-      border: { top: { style: "thin", color: { rgb: hex(T.border) } }, bottom: { style: "thin", color: { rgb: hex(T.border) } }, left: { style: "thin", color: { rgb: hex(T.border) } }, right: { style: "thin", color: { rgb: hex(T.border) } } }
-    };
-    const thStyle = {
-      font: { bold: true, color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: hex(T.navy) } },
-      alignment: { vertical: "center" }
-    };
-    const gtStyle = {
-      font: { bold: true, color: { rgb: hex(T.green) } },
-      fill: { fgColor: { rgb: hex(T.bg) } }
-    };
-
-    // Apply styles to info header (rows 0-5)
-    for (let R = 0; R <= 5; R++) {
-      for (let C = 0; C < 6; C++) {
-        if (!aoa[R][C] && aoa[R][C] !== 0 && aoa[R][C] !== "") continue;
-        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-        ws[cellRef].s = (C % 2 === 0) ? labelStyle : valStyle;
-      }
-    }
-
-    // Apply styles to table header (row 7)
-    for (let C = 0; C < 10; C++) {
-      const cellRef = XLSX.utils.encode_cell({ c: C, r: 7 });
-      if (ws[cellRef]) ws[cellRef].s = thStyle;
-    }
-
-    // Apply styles to Grand Total row (last row)
-    const gtRowIndex = aoa.length - 1;
-    for (let C = 0; C < 10; C++) {
-      const cellRef = XLSX.utils.encode_cell({ c: C, r: gtRowIndex });
-      if (ws[cellRef]) ws[cellRef].s = gtStyle;
-    }
-
-    ws['!cols'] = [{ wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 20 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Shift Report');
-    XLSX.writeFile(wb, `Shift_${shift.id}_${new Date().toLocaleDateString('en-KE').replace(/\//g, '-')}.xlsx`);
-  };
-
-  // ── PDF Export (print window) ────────────────────────────────────
-  const exportPDF = () => {
-    const rows = filteredReceipts.map((r, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
-        <td>${new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td style="font-weight:700">${r.id}</td>
-        <td>${r.billNo || r.invoiceNo || '—'}</td>
-        <td>${r.patientId || '—'}</td>
-        <td style="font-weight:600">${r.patient}</td>
-        <td>${r.method}</td>
-        <td style="color:#64748b">${r.ref || '—'}</td>
-        <td style="text-align:right;font-weight:700">KES ${r.amount.toLocaleString()}</td>
-        <td>${r.cashier || '—'}</td>
-      </tr>
-    `).join('');
-
-    const summaryRows = Object.entries(totals).map(([m, amt]) =>
-      `<tr><td colspan="7" style="text-align:right;color:#64748b">${m}</td><td style="text-align:right;font-weight:700">KES ${amt.toLocaleString()}</td><td></td></tr>`
-    ).join('');
-
-    const html = `<!DOCTYPE html><html><head><title>Shift Report – ${shift.id}</title>
-      <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; padding: 24px; }
-        h1 { font-size: 16px; font-weight: 900; text-align:center; margin-bottom:2px; }
-        .sub { text-align:center; color:#64748b; font-size:10px; margin-bottom:16px; }
-        .meta { display:flex; gap:24px; margin-bottom:16px; font-size:10px; }
-        .meta div { flex:1; }
-        .meta b { display:block; font-size:9px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; }
-        table { width:100%; border-collapse:collapse; margin-bottom:16px; }
-        thead th { background:#071828; color:#fff; padding:8px 10px; text-align:left; font-size:10px; }
-        tbody td { padding:7px 10px; border-bottom:1px solid #f1f5f9; font-size:10px; }
-        .totals-row td { background:#f0fdf4; font-weight:800; color:#15803d; }
-        .grand-total { font-size:13px; font-weight:900; }
-        @media print { @page { size: A4 landscape; margin: 16mm; } }
-      </style></head><body>
-      <h1>${HOSPITAL_INFO.name} — Shift Report</h1>
-      <p class="sub">${HOSPITAL_INFO.address} &nbsp;|&nbsp; ${HOSPITAL_INFO.phone} &nbsp;|&nbsp; ${HOSPITAL_INFO.email}</p>
-      <div class="meta">
-        <div><b>Shift ID</b>${shift.id}</div>
-        <div><b>Cashier</b>${shift.officer}</div>
-        <div><b>Opened At</b>${new Date(shift.openedAt).toLocaleString()}</div>
-        <div><b>Closed At</b>${shift.closedAt ? new Date(shift.closedAt).toLocaleString() : 'Still Running'}</div>
-        <div><b>Float</b>KES ${shift.float?.toLocaleString()}</div>
-        <div><b>Total Receipts</b>${shift.receipts.length}</div>
-      </div>
-      <table>
-        <thead><tr>
-          <th>Time</th><th>Receipt No</th><th>Bill No</th><th>Patient ID</th><th>Patient Name</th><th>Method</th><th>Method Ref</th><th style="text-align:right">Amount</th><th>Served By</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot>
-          ${summaryRows}
-          <tr class="totals-row"><td colspan="7" style="text-align:right" class="grand-total">Grand Total</td><td style="text-align:right" class="grand-total">KES ${grandTotal.toLocaleString()}</td><td></td></tr>
-        </tfoot>
-      </table>
-      <p style="text-align:center;color:#94a3b8;font-size:9px">Generated on ${new Date().toLocaleString()} — ${HOSPITAL_INFO.name}</p>
-    </body></html>`;
-
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
-  };
+  const isClosed = !!shift.closedAt;
+  const duration = isClosed
+    ? Math.round((new Date(shift.closedAt) - new Date(shift.openedAt)) / 60000)
+    : null;
 
   return (
     <HMSLayout>
       <HMSTopBar
-        title={`Shift Summary: ${shift.id}`}
-        subtitle={`Cashier: ${shift.officer} · ${new Date(shift.openedAt).toLocaleDateString()}`}
-        action={<button onClick={() => navigate("/hms/cashier")} style={BtnGhost}>← Back to Dashboard</button>}
+        title={`Shift Summary · ${shift.id}`}
+        subtitle={`${shift.officer} · ${new Date(shift.openedAt).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+        action={<button onClick={() => navigate('/hms/cashier')} style={S.ghostBtn}>← Back to Dashboard</button>}
       />
 
-      <div style={{ padding: isMobile ? "16px" : "24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "320px 1fr", gap: 24, alignItems: "start" }}>
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Summary Stats */}
-          <div>
-            <Card>
-              <Sec>Financial Summary</Sec>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: T.slateL, textTransform: "uppercase", letterSpacing: 1 }}>Opening Float</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: T.navy }}>{fmtKES(shift.float)}</div>
-              </div>
+        {/* ── KPI strip ──────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <KpiCard label="Opening Float" value={fmtKES(shift.float)} sub="Starting cash" />
+          <KpiCard label="Total Collection" value={fmtKES(grandTotal)} sub={`${shift.receipts.length} transactions`} accentBg="#f0fdf4" accentBorder="#bbf7d0" />
+          <KpiCard label="Net Expected" value={fmtKES(grandTotal + shift.float)} sub="Float + collections" accentBg="#eff6ff" accentBorder="#bfdbfe" />
+          <KpiCard
+            label="Shift Status"
+            value={isClosed ? 'Closed' : '🟢 Running'}
+            sub={isClosed && duration ? `${duration} min duration` : 'Ongoing'}
+            accentBg={isClosed ? '#f8fafc' : '#fffbeb'}
+            accentBorder={isClosed ? '#e2e8f0' : '#fde68a'}
+          />
+        </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {Object.entries(totals).map(([m, amt]) => (
-                  <div key={m} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                    <span style={{ color: T.slate }}>{m}</span>
-                    <span style={{ fontWeight: 700 }}>{fmtKES(amt)}</span>
-                  </div>
+        {/* ── Main grid ──────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20, alignItems: 'start' }}>
+
+          {/* Left panel */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Payment breakdown */}
+            <div style={S.card}>
+              <div style={S.sectionLabel}>Payment Breakdown</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {ALL_METHODS.map(m => (
+                  <MethodBar key={m} label={m} amount={totals[m] || 0} total={grandTotal} />
                 ))}
-                <div style={{ height: 1, background: T.border, margin: "4px 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 900, color: T.green }}>
-                  <span>Total Collection</span>
-                  <span>{fmtKES(grandTotal)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 900, color: T.navy, marginTop: 8 }}>
-                  <span>Net Expected</span>
-                  <span>{fmtKES(grandTotal + shift.float)}</span>
+                <div style={{ height: 1, background: '#f1f5f9', margin: '4px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 900 }}>
+                  <span style={{ color: '#475569' }}>Grand Total</span>
+                  <span style={{ color: '#059669' }}>{fmtKES(grandTotal)}</span>
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ marginTop: 16 }}>
-              <Sec>Shift Details</Sec>
-              <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: T.slateL }}>Opened At</span>
-                  <span style={{ fontWeight: 600 }}>{new Date(shift.openedAt).toLocaleTimeString()}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: T.slateL }}>Closed At</span>
-                  <span style={{ fontWeight: 600 }}>{shift.closedAt ? new Date(shift.closedAt).toLocaleTimeString() : "Still Running"}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: T.slateL }}>Total Receipts</span>
-                  <span style={{ fontWeight: 600 }}>{shift.receipts.length}</span>
-                </div>
+            {/* Shift details */}
+            <div style={S.card}>
+              <div style={S.sectionLabel}>Shift Details</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <InfoRow label="Cashier" value={shift.officer} />
+                <InfoRow label="Opened At" value={new Date(shift.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                <InfoRow
+                  label="Closed At"
+                  value={isClosed ? new Date(shift.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Still Running'}
+                  valueStyle={!isClosed ? { color: '#d97706' } : {}}
+                />
+                {duration !== null && <InfoRow label="Duration" value={`${duration} minutes`} />}
+                <InfoRow label="Transactions" value={shift.receipts.length} />
               </div>
-            </Card>
+            </div>
+
           </div>
 
-          {/* Detailed Logs */}
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+          {/* Transaction table */}
+          <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+
+            {/* Toolbar */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+              justifyContent: 'space-between', gap: 12,
+              padding: '16px 20px', borderBottom: '1px solid #f1f5f9',
+            }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.navy }}>🧾 Detailed Transaction Log</div>
-                <div style={{ fontSize: 11, color: T.slateL, marginTop: 2 }}>Showing {filteredReceipts.length} of {shift.receipts.length} transactions</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.navy }}>🧾 Transaction Log</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  Showing {filteredReceipts.length} of {shift.receipts.length} transactions
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={exportExcel} style={{ ...BtnGhost, padding: "7px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                  📊 Export Excel
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => exportExcel({ shift, filteredReceipts, totals, grandTotal })} style={S.ghostBtn}>
+                  📊 Excel
                 </button>
-                <button onClick={exportPDF} style={{ ...BtnGreen, padding: "7px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                  📄 Export PDF
+                <button onClick={() => exportPDF({ shift, filteredReceipts, totals, grandTotal })} style={S.greenBtn}>
+                  📄 PDF
                 </button>
               </div>
             </div>
 
-            {/* Filter Log */}
-            <div style={{ background: "#fff", borderRadius: 12, padding: "12px", marginBottom: 12, border: "1px solid " + T.border, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search patient or receipt..." style={{ ...IS(), padding: "6px 10px", flex: 2, minWidth: 150 }} />
-              <select value={method} onChange={e => setMethod(e.target.value)} style={{ ...SS, padding: "6px 10px", flex: 1, minWidth: 120 }}>
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '12px 20px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Search patient or receipt…"
+                style={S.input}
+              />
+              <select value={method} onChange={e => setMethod(e.target.value)} style={S.select}>
                 <option value="">All Methods</option>
-                {["Cash", "M-Pesa", "POS / Card", "Cheque"].map(m => <option key={m} value={m}>{m}</option>)}
+                {ALL_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
 
-            <Card style={{ padding: 0 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead style={{ background: "#f8fafc", borderBottom: "1px solid " + T.border }}>
+            {/* Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <th style={{ textAlign: "left", padding: "12px 16px" }}>Time</th>
-                    <th style={{ textAlign: "left", padding: "12px 16px" }}>Receipt No</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left" }}>Bill No</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left" }}>Patient ID</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left" }}>Patient Name</th>
-                    <th style={{ textAlign: "left", padding: "12px 16px" }}>Method</th>
-                    <th style={{ textAlign: "left", padding: "12px 16px" }}>Method Ref</th>
-                    <th style={{ textAlign: "right", padding: "12px 16px" }}>Amount</th>
-                    <th style={{ textAlign: "left", padding: "12px 16px" }}>Served By</th>
-                    <th style={{ textAlign: "center", padding: "12px 16px" }}>Actions</th>
+                    <th style={S.th}>Time</th>
+                    <th style={S.th}>Receipt No</th>
+                    <th style={S.th}>Bill No</th>
+                    <th style={S.th}>Patient ID</th>
+                    <th style={S.th}>Patient Name</th>
+                    <th style={S.th}>Method</th>
+                    <th style={S.th}>Ref</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>Amount</th>
+                    <th style={S.th}>Served By</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReceipts.map((r, i) => (
-                    <tr key={r.id} style={{ borderBottom: i < filteredReceipts.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                      <td style={{ padding: "12px 16px", color: T.slateL, fontFamily: "'DM Mono',monospace" }}>
-                        {new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontWeight: 700, color: T.navy, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>
-                        {r.id}
-                      </td>
-                      <td style={{ padding: "12px 16px", color: T.slateL, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>
-                        {r.billNo || r.invoiceNo}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontFamily: "'DM Mono',monospace", fontSize: 11 }}>
-                        {r.patientId || "—"}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                        {r.patient}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ fontWeight: 600 }}>{r.method}</div>
-                      </td>
-                      <td style={{ padding: "12px 16px", fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.slate }}>
-                        {r.ref || <span style={{ opacity: 0.35 }}>—</span>}
-                      </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800 }}>
-                        {fmtKES(r.amount)}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: 11, color: T.slate }}>
-                        {r.cashier || "—"}
-                      </td>
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          <button onClick={() => setViewRec(r)} style={{ ...BtnGhost, padding: "4px 8px", fontSize: 10 }}>👁 View</button>
-                          <button onClick={() => printReceipt(r, true)} style={{ ...BtnGreen, padding: "4px 8px", fontSize: 10 }}>🖨 Print</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredReceipts.length === 0 && (
+                  {filteredReceipts.length === 0 ? (
                     <tr>
-                      <td colSpan={10} style={{ padding: 40, textAlign: "center", color: T.slateL }}>No transactions match your search.</td>
+                      <td colSpan={10} style={{ padding: '48px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        No transactions match your search.
+                      </td>
                     </tr>
+                  ) : (
+                    filteredReceipts.map((r, i) => (
+                      <tr
+                        key={r.id}
+                        style={{ borderBottom: i < filteredReceipts.length - 1 ? '1px solid #f8fafc' : 'none', background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f0fdfa')}
+                        onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafbfc')}
+                      >
+                        <td style={{ ...S.td, fontFamily: "'DM Mono',monospace", color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                          {new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td style={{ ...S.td, fontFamily: "'DM Mono',monospace", fontWeight: 800, color: T.navy, fontSize: 11, whiteSpace: 'nowrap' }}>
+                          {r.id}
+                        </td>
+                        <td style={{ ...S.td, fontFamily: "'DM Mono',monospace", color: '#64748b', fontSize: 11, whiteSpace: 'nowrap' }}>
+                          {r.billNo || r.invoiceNo || '—'}
+                        </td>
+                        <td style={{ ...S.td, fontFamily: "'DM Mono',monospace", color: '#64748b', fontSize: 11, whiteSpace: 'nowrap' }}>
+                          {r.patientId || '—'}
+                        </td>
+                        <td style={{ ...S.td, fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                          {r.patient}
+                        </td>
+                        <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
+                          <MethodBadge method={r.method} />
+                        </td>
+                        <td style={{ ...S.td, fontFamily: "'DM Mono',monospace", color: '#94a3b8', fontSize: 11 }}>
+                          {r.ref || <span style={{ opacity: 0.3 }}>—</span>}
+                        </td>
+                        <td style={{ ...S.td, textAlign: 'right', fontWeight: 900, color: '#1e293b', whiteSpace: 'nowrap' }}>
+                          {fmtKES(r.amount)}
+                        </td>
+                        <td style={{ ...S.td, color: '#64748b', whiteSpace: 'nowrap' }}>
+                          {r.cashier || '—'}
+                        </td>
+                        <td style={{ ...S.td, textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                            <button onClick={() => setViewRec(r)} style={S.smallGhostBtn}>👁 View</button>
+                            <button onClick={() => printReceipt(r, true)} style={S.smallGreenBtn}>🖨 Print</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
-            </Card>
+            </div>
+
+            {/* Table footer */}
+            {filteredReceipts.length > 0 && (
+              <div style={{
+                display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10,
+                padding: '12px 20px', borderTop: '1px solid #f1f5f9', background: '#f8fafc',
+              }}>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                  {q || method ? 'Filtered' : 'Shift'} Total:
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 900, color: '#059669' }}>
+                  {fmtKES(filteredTotal)}
+                </span>
+              </div>
+            )}
           </div>
 
         </div>
       </div>
 
-      {/* View Receipt Modal */}
-      {viewRec && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(7,24,40,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, backdropFilter: "blur(4px)" }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: "32px", width: 400, boxShadow: "0 32px 64px rgba(0,0,0,.4)" }}>
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: T.navy }}>{HOSPITAL_INFO.name}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.slate }}>{HOSPITAL_INFO.branch}</div>
-              <div style={{ fontSize: 10, color: T.slateL, marginTop: 4 }}>
-                {HOSPITAL_INFO.address}<br />
-                {HOSPITAL_INFO.phone}<br />
-                {HOSPITAL_INFO.email}
-              </div>
-              <div style={{ height: 1, background: T.border, margin: "16px 0" }} />
-              <div style={{ fontSize: 14, fontWeight: 800, color: T.navy }}>OFFICIAL RECEIPT</div>
-              <div style={{ fontSize: 11, color: T.slateL }}>{viewRec.id} · Shift: {viewRec.shiftId}</div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: T.slateL }}>Patient ID:</span><span style={{ fontWeight: 700 }}>{viewRec.patientId}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: T.slateL }}>Patient Name:</span><span style={{ fontWeight: 700 }}>{viewRec.patient} ({viewRec.age} Yrs)</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: T.slateL }}>Bill No:</span><span style={{ fontWeight: 700 }}>{viewRec.billNo || viewRec.invoiceNo}</span></div>
-
-              <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.slateL, textTransform: "uppercase", letterSpacing: 1 }}>Itemized Bill</div>
-              <div style={{ maxHeight: 150, overflowY: "auto", border: "1px solid " + T.border, borderRadius: 8, padding: 10 }}>
-                {viewRec.items?.map((it, idx) => (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ color: T.navy, flex: 1 }}>{it.qty}x {it.name}</span>
-                    <span style={{ fontWeight: 600 }}>{fmtKES(it.price * it.qty)}</span>
-                  </div>
-                ))}
-                {(!viewRec.items || viewRec.items.length === 0) && <div style={{ fontSize: 12, color: T.slateL }}>No items found.</div>}
-              </div>
-
-              <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: T.slateL }}>Method:</span><span style={{ fontWeight: 700 }}>{viewRec.method}</span></div>
-              {viewRec.ref && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: T.slateL }}>Reference:</span><span style={{ fontWeight: 700 }}>{viewRec.ref}</span></div>}
-
-              {viewRec.discount > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.red }}>
-                  <span>Discount:</span>
-                  <span style={{ fontWeight: 700 }}>-{fmtKES(viewRec.discount)}</span>
-                </div>
-              )}
-
-              <div style={{ height: 1, background: T.border, margin: "4px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16 }}><span style={{ fontWeight: 800 }}>Total Paid:</span><span style={{ fontWeight: 900, color: T.green }}>{fmtKES(viewRec.amount)}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}><span style={{ color: T.slateL }}>Served By:</span><span style={{ fontWeight: 600 }}>{viewRec.cashier}</span></div>
-            </div>
-
-            <div style={{ display: "flex", gap: 12, marginTop: 32 }}>
-              <button onClick={() => setViewRec(null)} style={{ ...BtnGhost, flex: 1 }}>Close</button>
-              <button onClick={() => { printReceipt(viewRec, true); setViewRec(null); }} style={{ ...BtnGreen, flex: 2 }}>Print Receipt</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Receipt Modal */}
+      <ReceiptModal rec={viewRec} onClose={() => setViewRec(null)} />
     </HMSLayout>
   );
 }

@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 
 export default function ShiftDashboard() {
   const navigate = useNavigate();
-  const { shifts, activeShift, openShift } = usePatients();
+  const { shifts, activeShift, openShift, patients } = usePatients();
   const { isMobile } = useBreakpoint();
 
   const [modal, setModal] = useState(false);
@@ -26,6 +26,24 @@ export default function ShiftDashboard() {
   const [fDateEnd, setFDateEnd] = useState("");
   const [fCashier, setFCashier] = useState("");
   const [fQuery, setFQuery] = useState("");
+
+  const today = new Date().toISOString().split('T')[0];
+  const todaysShifts = useMemo(() => shifts.filter(s => s.openedAt.startsWith(today)), [shifts, today]);
+  const todaysReceipts = useMemo(() => todaysShifts.flatMap(s => s.receipts || []), [todaysShifts]);
+  
+  const shiftTotal = todaysReceipts.reduce((sum, r) => sum + r.amount, 0);
+  const cashTotal = todaysReceipts.filter(r => r.method === "Cash").reduce((sum, r) => sum + r.amount, 0);
+  const mpesaTotal = todaysReceipts.filter(r => r.method === "M-Pesa").reduce((sum, r) => sum + r.amount, 0);
+  const cardTotal = todaysReceipts.filter(r => r.method === "POS / Card").reduce((sum, r) => sum + r.amount, 0);
+  const chequeTotal = todaysReceipts.filter(r => r.method === "Cheque").reduce((sum, r) => sum + r.amount, 0);
+
+  const pendingBills = useMemo(() => {
+    return patients?.filter(p => p.billing && p.category === "Cash" && !p.billing.paid) || [];
+  }, [patients]);
+  
+  const pendingTotal = pendingBills.reduce((sum, p) => {
+    return sum + (p.billing.items.reduce((s, i) => s + i.price * i.qty, 0) - (p.billing.discount || 0));
+  }, 0);
 
   const runningShifts = shifts.filter(s => !s.closedAt);
   
@@ -64,7 +82,37 @@ export default function ShiftDashboard() {
         }
       />
 
-      <div style={{ padding: isMobile ? "16px" : "24px", maxWidth: 1000 }}>
+      <div style={{ padding: isMobile ? "16px" : "24px", maxWidth: 1200 }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.navy, marginBottom: 12 }}>Today's Overview</div>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(6,1fr)", gap:10 }}>
+            {[
+              ["Total Collected", shiftTotal,  T.navy,   "#e2e8f0", "💰"],
+              ["Cash",           cashTotal,   T.green,  "#f0fdf4", "💵"],
+              ["M-Pesa",         mpesaTotal,  "#0369a1","#eff6ff", "📱"],
+              ["POS / Card",     cardTotal,   T.purple, "#f5f3ff", "💳"],
+              ["Cheque",         chequeTotal, T.amber,  "#fffbeb", "📄"],
+              ["Pending Bills",  pendingTotal, T.red,    "#fef2f2", "⏳"],
+            ].map(function(item) {
+              const lbl=item[0],amt=item[1],col=item[2],bg=item[3],icon=item[4];
+              return (
+                <div key={lbl} style={{ background:T.card, borderRadius:11, padding:"13px 15px",
+                  boxShadow:"0 1px 6px rgba(0,0,0,.05)", border:"1px solid "+T.border,
+                  display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:36, height:36, background:bg, borderRadius:9,
+                    display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{icon}</div>
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:800, color:col, lineHeight:1, fontFamily:"'DM Mono',monospace" }}>
+                      {fmtKES(amt)}
+                    </div>
+                    <div style={{ fontSize:10, color:T.slateL, marginTop:2 }}>{lbl}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {activeShift && (
           <div style={{
             background: "linear-gradient(135deg," + T.navy + "," + T.navyL + ")",
