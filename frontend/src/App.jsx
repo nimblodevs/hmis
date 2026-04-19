@@ -5,6 +5,7 @@ import { PatientProvider }   from './context/PatientContext';
 
 import CreateToken           from './pages/queues/CreateToken';
 import QueueDashboard        from './pages/queues/QueueDashboard';
+import PatientFlow           from './pages/queues/PatientFlow';
 
 import TriageDashboard      from './pages/triage/TriageDashboard';
 import TriageAssessment     from './pages/triage/TriageAssessment';
@@ -25,6 +26,10 @@ import PharmacyDashboard     from './pages/pharmacy/PharmacyDashboard';
 import PharmacyDispensePage  from './pages/pharmacy/PharmacyDispensePage';
 
 import ReportsDashboard      from './pages/reports/ReportsDashboard';
+import ShiftDashboard       from './pages/finance/cashier/ShiftDashboard';
+import CashierReceipting    from './pages/finance/cashier/CashierReceipting';
+import ShiftSummary         from './pages/finance/cashier/ShiftSummary';
+
 
 function App() {
   return (
@@ -38,6 +43,7 @@ function App() {
             {/* HMS module — all pages share PatientContext */}
             <Route path="/hms"          element={<Navigate to="/hms/queue" replace />} />
             <Route path="/hms/queue"    element={<QueueDashboard />} />
+            <Route path="/hms/flow"     element={<PatientFlow />} />
             
             <Route path="/hms/triage"          element={<TriageDashboard />} />
             <Route path="/hms/triage/assess"   element={<TriageAssessment />} />
@@ -58,6 +64,10 @@ function App() {
             <Route path="/hms/pharmacy/dispense" element={<PharmacyDispensePage />} />
             
             <Route path="/hms/reports"  element={<ReportsDashboard />} />
+            <Route path="/hms/cashier"  element={<ShiftDashboard />} />
+            <Route path="/hms/cashier/receipting"  element={<CashierReceipting />} />
+            <Route path="/hms/cashier/summary/:id"  element={<ShiftSummary />} />
+
 
             {/* Catch-all */}
             <Route path="*"             element={<Navigate to="/" replace />} />

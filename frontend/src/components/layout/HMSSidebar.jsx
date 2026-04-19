@@ -11,6 +11,7 @@ const NAV = [
   { key: "doctor",   label: "Doctor",       emoji: "🩻", path: "/hms/doctor"   },
   { key: "lab",      label: "Laboratory",   emoji: "🧪", path: "/hms/lab"      },
   { key: "pharmacy", label: "Pharmacy",     emoji: "💊", path: "/hms/pharmacy" },
+  { key: "cashier",  label: "Cashier",      emoji: "💵", path: "/hms/cashier"  },
   { key: "reports",  label: "Reports",      emoji: "📊", path: "/hms/reports"  },
 ];
 
@@ -28,6 +29,7 @@ export default function HMSSidebar({ onClose }) {
     doctor:   patients.filter(p => p.status === "Billed" || p.status === "With Doctor (Post-Lab)").length,
     lab:      patients.filter(p => p.status === "Lab Pending").length,
     pharmacy: patients.filter(p => p.clerking?.orders?.rx?.drugs?.length > 0 && !p.clerking?.dispensed).length,
+    cashier:  patients.filter(p => p.billing && p.category === "Cash" && !p.billing.paid).length,
     reports:  0,
   };
 
@@ -40,6 +42,7 @@ export default function HMSSidebar({ onClose }) {
     { prefix: "/hms/lab",          key: "lab"      },
     { prefix: "/hms/laboratory",   key: "lab"      },
     { prefix: "/hms/pharmacy",     key: "pharmacy" },
+    { prefix: "/hms/cashier",      key: "cashier"  },
     { prefix: "/hms/reports",      key: "reports"  },
     { prefix: "/hms/queue",        key: "queue"    },
   ];

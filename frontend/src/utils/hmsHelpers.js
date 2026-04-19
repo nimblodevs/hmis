@@ -1,4 +1,4 @@
-import { LAB_REF } from './hmsConstants';
+import { LAB_REF, HOSPITAL_INFO } from './hmsConstants';
 
 export const pad     = (n, l = 5) => String(n).padStart(l, "0");
 export const today   = ()         => new Date().toISOString().split("T")[0];
@@ -90,4 +90,111 @@ export function printRxLabel(pat) {
   w.document.write(html);
   w.document.close();
   w.print();
+}
+
+export function printReceipt(r, isCopy = false) {
+  const subtotal = (r.items || []).reduce((s, i) => s + i.price * i.qty, 0);
+  const vId = Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
+  
+  const html = `<!DOCTYPE html><html><head><title>Receipt - ${r.id}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;700;900&display=swap');
+      body { font-family: 'Outfit', sans-serif; margin: 5px; color: #0f172a; max-width: 380px; font-size: 13px; line-height: 1.1; letter-spacing: -0.3px; }
+      .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+      .hr { border-top: 1px dotted #000; margin: 4px 0; }
+      .hr-dashed { display: none; }
+      .center { text-align: center; }
+      .bold { font-weight: 700; }
+      .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+      .section-title { font-weight: 900; font-size: 11px; margin: 6px 0 2px; letter-spacing: 0.5px; }
+      .total-row { font-size: 16px; font-weight: 900; margin-top: 4px; padding: 6px 0; }
+      @media print { margin: 0; }
+    </style></head><body>
+    
+    <div class="center">
+      <div style="font-size: 20px; font-weight: 900;">${HOSPITAL_INFO.name}</div>
+      <div style="font-size: 11px; font-weight: 700; color: #475569;">${HOSPITAL_INFO.branch}</div>
+      <div style="font-size: 10px; color: #64748b; margin-top: 4px;">
+        ${HOSPITAL_INFO.address}<br/>
+        Tel: ${HOSPITAL_INFO.phone}<br/>
+        Email: ${HOSPITAL_INFO.email}
+      </div>
+      
+      <div style="margin: 10px 0;">
+        <div class="hr"></div>
+        <div class="bold">${isCopy ? "COPY RECEIPT" : "OFFICIAL RECEIPT"}</div>
+        ${isCopy ? '<div style="font-size: 10px; color: #64748b">(Reprint Copy)</div>' : ""}
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div style="text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 8px;">${r.shiftId}</div>
+
+    <div style="margin-top: 8px;">
+      <div class="row"><span class="bold">Receipt No:</span><span class="mono">${r.id}</span></div>
+      <div class="row"><span class="bold">Bill No:</span><span class="mono">${r.billNo || r.invoiceNo || "-"}</span></div>
+      <div style="height: 4px"></div>
+      <div class="row"><span>Date:</span><span class="mono">${new Date(r.time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+      <div class="row"><span>Time:</span><span class="mono">${new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+    </div>
+
+    <div class="section-title">PATIENT DETAILS</div>
+    <div class="row"><span>Patient Name:</span><span class="bold">${r.patient}</span></div>
+    <div class="row"><span>Patient ID:</span><span class="mono">${r.patientId}</span></div>
+    <div class="row"><span>Age:</span><span class="bold">${r.age} Yrs</span></div>
+
+    <div class="section-title">BILL DETAILS</div>
+    ${(r.items || []).map(it => `
+      <div class="row">
+        <span>${it.name}</span>
+        <span class="mono">KSh ${Number(it.price * it.qty).toLocaleString()}</span>
+      </div>
+    `).join("")}
+    
+    <div class="row"><span>Subtotal</span><span class="mono">KSh ${Number(subtotal).toLocaleString()}</span></div>
+    <div class="row"><span>Discount</span><span class="mono">KSh ${Number(r.discount || 0).toLocaleString()}</span></div>
+    
+    <div class="total-row">
+      <div class="row">
+        <span>TOTAL</span>
+        <span>KSh ${Number(r.amount).toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="section-title" style="margin-top: 20px;">PAYMENT INFORMATION</div>
+    <div class="row"><span>Method:</span><span class="bold">${r.method}</span></div>
+    ${(() => {
+      if (!r.ref) return "";
+      let label = "Reference";
+      if (r.method === "M-Pesa") label = "M-Pesa Code";
+      if (r.method === "Cheque") label = "Cheque Number";
+      if (r.method === "POS / Card") label = "Card Ref No";
+      return `<div class="row"><span>${label}:</span><span class="mono bold">${r.ref}</span></div>`;
+    })()}
+    <div class="row"><span>Status:</span><span class="bold" style="color: #15803d">PAID</span></div>
+    <div style="height: 8px"></div>
+    <div class="row"><span>Processed By:</span><span>Cashier - ${r.cashier}</span></div>
+
+    <div class="hr"></div>
+    <div class="section-title">VERIFICATION</div>
+    
+    <div class="hr"></div>
+    <div class="center" style="font-size: 10px; margin-top: 16px;">
+      <div style="color: #64748b; margin-bottom: 4px;">Verification ID:</div>
+      <div class="mono" style="word-break: break-all;">${vId}</div>
+    </div>
+
+    <div class="hr"></div>
+    <div style="margin-top: 10px; padding: 12px 0;" class="center">
+      <div style="font-weight: 700;">Thank you for visiting us</div>
+      <div style="font-size: 11px;">This is an official receipt</div>
+    </div>
+
+    <script>window.print();</script>
+  </body></html>`;
+  
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
 }

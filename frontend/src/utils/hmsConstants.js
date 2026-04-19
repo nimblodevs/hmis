@@ -154,3 +154,77 @@ export const CORP_ORGS = ["Mater Hospital", "KCB Group", "Safaricom", "Kenya Air
 export const COUNTIES = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Kitale", "Malindi", "Garissa", "Nyeri"];
 
 export const REG_TABS = ["Personal Info", "Contact", "Emergency Contact", "Insurance & Payment"];
+
+export const HOSPITAL_INFO = {
+  name: "CITY CARE CLINIC",
+  branch: "Main Branch",
+  address: "Mariakani Rd, Nairobi",
+  phone: "+254 700 000 000",
+  email: "info@citycare.com",
+  website: "www.citycare.com",
+};
+
+export const DISABILITIES = ["None", "Physical Disability", "Visual Impairment", "Hearing Impairment", "Mental Disability", "Speech Impairment", "Albinism"];
+export const CHRONIC_CONDITIONS = ["None", "Hypertension", "Diabetes Type 1", "Diabetes Type 2", "Asthma", "Epilepsy", "HIV/AIDS", "Arthritis", "Cancer", "Sickle Cell", "Chronic Kidney Disease"];
+export const COMMON_ALLERGIES = ["NKDA", "Penicillin", "Sulfa Drugs", "NSAIDs (e.g. Aspirin)", "Latex", "Peanuts", "Shellfish", "Dairy", "Eggs", "Dust Mites", "Pollen"];
+
+export const DOCTORS = [
+  { 
+    id: "jkisavuli", name: "DR. JOSEPH WAFULA KISAVULI", code: "JKISAVULI", patientsSeen: 2,
+    assignedPatients: [
+      { id: "PAT-26-0001", name: "John Kamau", clinic: "General OPD", dateTime: "19/04 10:30 AM" },
+      { id: "PAT-26-0002", name: "Sarah Wanjiku", clinic: "General OPD", dateTime: "19/04 11:15 AM" }
+    ]
+  },
+  { 
+    id: "skungu", name: "DR. STEPHANIE KUNGU", code: "SKUNGU", patientsSeen: 4,
+    frozenReason: "In Theater / Surgery", assignedPatients: []
+  },
+  { 
+    id: "onwosu", name: "DR. OBINNA NWOSU", code: "ONWOSU", patientsSeen: 12,
+    assignedPatients: [
+      { id: "PAT-26-0005", name: "Kelvin Kibet", clinic: "A&E", dateTime: "19/04 12:45 PM" }
+    ]
+  },
+  { 
+    id: "snjoroge", name: "DR. SAMUEL NJOROGE", code: "SNJOROGE", patientsSeen: 8,
+    assignedPatients: [
+      { id: "PAT-26-0008", name: "James Omolo", clinic: "Pediatrics", dateTime: "19/04 01:00 PM" }
+    ]
+  },
+  { 
+    id: "emuthoni", name: "DR. ESTHER MUTHONI", code: "EMUTHONI", patientsSeen: 5,
+    assignedPatients: [
+      { id: "PAT-26-0010", name: "Grace Nyambura", clinic: "Antenatal", dateTime: "19/04 01:30 PM" }
+    ]
+  },
+  { 
+    id: "aali", name: "DR. AHMED ALI", code: "AALI", patientsSeen: 15,
+    assignedPatients: [
+      { id: "PAT-26-0012", name: "Fatuma Zahra", clinic: "Specialist", dateTime: "19/04 02:15 PM" },
+      { id: "PAT-26-0013", name: "Mohamed Hassan", clinic: "Specialist", dateTime: "19/04 02:45 PM" }
+    ]
+  },
+  { 
+    id: "mwanjiku", name: "DR. MARY WANJIKU", code: "MWANJIKU", patientsSeen: 1,
+    frozenReason: "On Lunch Break", assignedPatients: []
+  },
+  { 
+    id: "pkimani", name: "DR. PETER KIMANI", code: "PKIMANI", patientsSeen: 9,
+    assignedPatients: [
+      { id: "PAT-26-0015", name: "David Kimani", clinic: "Dental", dateTime: "19/04 02:30 PM" }
+    ]
+  },
+  { 
+    id: "lotieno", name: "DR. LUCY OTIENO", code: "LOTIENO", patientsSeen: 3,
+    assignedPatients: [
+      { id: "PAT-26-0020", name: "Brian Omondi", clinic: "Psychiatry", dateTime: "19/04 03:00 PM" }
+    ]
+  },
+  { 
+    id: "dabdi", name: "DR. DAUD ABDI", code: "DABDI", patientsSeen: 6,
+    assignedPatients: [
+      { id: "PAT-26-0022", name: "Amina Yusuf", clinic: "General OPD", dateTime: "19/04 03:15 PM" }
+    ]
+  },
+];

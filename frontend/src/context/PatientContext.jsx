@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { SEED } from "../utils/hmsSeed";
 import { timeNow, today, pad, genNo } from "../utils/hmsHelpers";
 
@@ -11,6 +11,86 @@ export function usePatients() {
 export function PatientProvider({ children }) {
   const [patients, setPatients] = useState(SEED);
   const [toast, setToast]       = useState(null);
+
+  // ── Shifts & Cashiering ───────────────────────────────────────────────────
+  const [shifts, setShifts] = useState(() => {
+    const saved = localStorage.getItem("hmis_shifts");
+    if (saved) return JSON.parse(saved);
+
+    // Dummy data for testing filters and multi-user view
+    return [
+      {
+        id: "SHF-260418-001",
+        officer: "Officer John",
+        float: 5000,
+        openedAt: "2026-04-18T08:00:00.000Z",
+        closedAt: "2026-04-18T16:30:00.000Z",
+        receipts: [
+          { id: "REC-260418-001", patientId: "MRN-1001", patient: "James Mwangi", age: 45, amount: 2500, method: "Cash", time: "2026-04-18T09:15:00.000Z", billNo: "BL-260418-001", cashier: "Officer John", shiftId: "SHF-260418-001", discount: 0, items: [{ name: "Consultation - GP", price: 1500, qty: 1 }, { name: "Lab: Malaria Test", price: 1000, qty: 1 }] },
+          { id: "REC-260418-002", patientId: "MRN-1024", patient: "Amara Ochieng", age: 28, amount: 4500, method: "M-Pesa", time: "2026-04-18T10:45:00.000Z", billNo: "BL-260418-002", cashier: "Officer John", shiftId: "SHF-260418-001", discount: 500, items: [{ name: "Lab: Full Hemogram", price: 2500, qty: 1 }, { name: "X-Ray Chest", price: 2500, qty: 1 }] },
+          { id: "REC-260418-003", patientId: "MRN-1055", patient: "Peter Odhiambo", age: 34, amount: 1200, method: "Cash", time: "2026-04-18T14:20:00.000Z", billNo: "BL-260418-003", cashier: "Officer John", shiftId: "SHF-260418-001", discount: 0, items: [{ name: "Pharmacy: Paracetamol", price: 200, qty: 1 }, { name: "Procedure: Dressing", price: 1000, qty: 1 }] },
+        ]
+      },
+      {
+        id: "SHF-260417-005",
+        officer: "Officer Mary",
+        float: 3000,
+        openedAt: "2026-04-17T07:30:00.000Z",
+        closedAt: "2026-04-17T17:00:00.000Z",
+        receipts: [
+          { id: "REC-260417-010", patientId: "MRN-2044", patient: "Esther Njoroge", age: 52, amount: 7500, method: "POS / Card", time: "2026-04-17T11:00:00.000Z", billNo: "BL-260417-010", cashier: "Officer Mary", shiftId: "SHF-260417-005", discount: 1000, items: [{ name: "Physiotherapy Session", price: 6000, qty: 1 }, { name: "Pharmacy: Multi-vitamins", price: 2500, qty: 1 }] },
+          { id: "REC-260417-011", patientId: "MRN-2088", patient: "Fatuma Hassan", age: 19, amount: 3200, method: "Cash", time: "2026-04-17T15:30:00.000Z", billNo: "BL-260417-011", cashier: "Officer Mary", shiftId: "SHF-260417-005", discount: 0, items: [{ name: "Lab: Urinalysis", price: 1200, qty: 1 }, { name: "Lab: Blood Sugar", price: 2000, qty: 1 }] },
+        ]
+      },
+      {
+        id: "SHF-260415-002",
+        officer: "Admin Sarah",
+        float: 10000,
+        openedAt: "2026-04-15T09:00:00.000Z",
+        closedAt: "2026-04-15T13:00:00.000Z",
+        receipts: [
+          { id: "REC-260415-001", patientId: "MRN-3011", patient: "John Doe", age: 60, amount: 15000, method: "Cheque", time: "2026-04-15T10:00:00.000Z", billNo: "BL-260415-001", cashier: "Admin Sarah", shiftId: "SHF-260415-002", discount: 0, items: [{ name: "Inpatient Deposit", price: 15000, qty: 1 }] },
+        ]
+      },
+      {
+        id: "SHF-260419-001",
+        officer: "Night Officer Ben",
+        float: 2500,
+        openedAt: "2026-04-19T00:00:00.000Z",
+        closedAt: "2026-04-19T06:00:00.000Z",
+        receipts: [
+          { id: "REC-260419-001", patientId: "MRN-4050", patient: "Kelvin Kibet", age: 29, amount: 1800, method: "M-Pesa", time: "2026-04-19T02:30:00.000Z", billNo: "BL-260419-001", cashier: "Night Officer Ben", shiftId: "SHF-260419-001", discount: 0, items: [{ name: "ER: Emergency Consultation", price: 1500, qty: 1 }, { name: "Pharmacy: Painkillers", price: 300, qty: 1 }] },
+          { id: "REC-260419-002", patientId: "MRN-4088", patient: "Sarah Waceke", age: 22, amount: 500, method: "Cash", time: "2026-04-19T04:15:00.000Z", billNo: "BL-260419-002", cashier: "Night Officer Ben", shiftId: "SHF-260419-001", discount: 0, items: [{ name: "Lab: Blood Type Test", price: 500, qty: 1 }] },
+        ]
+      }
+    ];
+  });
+
+  const [activeShift, setActiveShift] = useState(() => {
+    const saved = localStorage.getItem("hmis_active_shift");
+    if (saved) return JSON.parse(saved);
+    
+    // Add a dummy active shift for multi-user view demonstration
+    return {
+      id: "SHF-260419-ACTIVE",
+      officer: "Night Officer Ben",
+      float: 2000,
+      openedAt: new Date(Date.now() - 3600000 * 4).toISOString(), // 4 hours ago
+      closedAt: null,
+      receipts: [
+        { id: "REC-ACT-001", patientId: "MRN-4001", patient: "Jane Smith", age: 24, amount: 1200, method: "Cash", time: new Date(Date.now() - 3600000 * 2).toISOString(), billNo: "BL-ACT-001", cashier: "Night Officer Ben", shiftId: "SHF-260419-ACTIVE", discount: 0, items: [{ name: "Consultation - GP", price: 1200, qty: 1 }] }
+      ]
+    };
+  });
+
+  // Persist shifts to localStorage
+  useEffect(() => {
+    localStorage.setItem("hmis_shifts", JSON.stringify(shifts));
+  }, [shifts]);
+
+  useEffect(() => {
+    localStorage.setItem("hmis_active_shift", JSON.stringify(activeShift));
+  }, [activeShift]);
 
   // ── Toast helpers ──────────────────────────────────────────────────────────
   const showToast = (title, msg, icon, cb) => setToast({ title, msg, icon, cb });
@@ -170,10 +250,47 @@ export function PatientProvider({ children }) {
     showToast("Prescription Dispensed", rxNo + " — All drugs for " + name + " dispensed.", "💊", onDone);
   };
 
+  // ── Shifts ────────────────────────────────────────────────────────────────
+  const openShift = (officer, float) => {
+    const id = "SHF-" + new Date().toISOString().slice(2, 10).replace(/-/g, "") + "-" + pad(Math.floor(Math.random() * 999) + 1, 3);
+    const newShift = {
+      id,
+      officer: officer.trim(),
+      float: parseFloat(float) || 0,
+      openedAt: new Date().toISOString(),
+      closedAt: null,
+      receipts: [],
+    };
+    setActiveShift(newShift);
+    setShifts(prev => [newShift, ...prev]);
+    return newShift;
+  };
+
+  const closeShift = (id) => {
+    const closedAt = new Date().toISOString();
+    setShifts(prev => prev.map(s => s.id === id ? { ...s, closedAt } : s));
+    if (activeShift?.id === id) {
+      setActiveShift(null);
+    }
+  };
+
+  const recordReceipt = (shiftId, receipt) => {
+    setShifts(prev => prev.map(s => 
+      s.id === shiftId ? { ...s, receipts: [...s.receipts, receipt] } : s
+    ));
+    // Also update active shift if it matches
+    if (activeShift?.id === shiftId) {
+      setActiveShift(prev => ({ ...prev, receipts: [...prev.receipts, receipt] }));
+    }
+  };
+
   return (
     <PatientContext.Provider value={{
-      patients,
+      patients, setPatients,
       toast, showToast, closeToast,
+      shifts, setShifts,
+      activeShift, setActiveShift,
+      openShift, closeShift, recordReceipt,
       addWalkIn,
       saveTriage,
       saveRegistration,

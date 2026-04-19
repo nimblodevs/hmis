@@ -171,6 +171,3 @@ export default function PatientRegistration() {
     </HMSLayout>
   );
 }
-    </HMSLayout>
-  );
-}
