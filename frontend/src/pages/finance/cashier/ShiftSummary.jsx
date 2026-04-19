@@ -106,23 +106,25 @@ export default function ShiftSummary() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
     // Styling configuration
+    const hex = (c) => c.replace('#', '').toUpperCase();
+    
     const labelStyle = {
       font: { bold: true, color: { rgb: "000000" } },
-      fill: { fgColor: { rgb: "F1F5F9" } },
-      border: { top: { style: "thin", color: { rgb: "CBD5E1" } }, bottom: { style: "thin", color: { rgb: "CBD5E1" } }, left: { style: "thin", color: { rgb: "CBD5E1" } }, right: { style: "thin", color: { rgb: "CBD5E1" } } }
+      fill: { fgColor: { rgb: hex(T.bg) } },
+      border: { top: { style: "thin", color: { rgb: hex(T.border) } }, bottom: { style: "thin", color: { rgb: hex(T.border) } }, left: { style: "thin", color: { rgb: hex(T.border) } }, right: { style: "thin", color: { rgb: hex(T.border) } } }
     };
     const valStyle = {
       font: { color: { rgb: "333333" } },
-      border: { top: { style: "thin", color: { rgb: "CBD5E1" } }, bottom: { style: "thin", color: { rgb: "CBD5E1" } }, left: { style: "thin", color: { rgb: "CBD5E1" } }, right: { style: "thin", color: { rgb: "CBD5E1" } } }
+      border: { top: { style: "thin", color: { rgb: hex(T.border) } }, bottom: { style: "thin", color: { rgb: hex(T.border) } }, left: { style: "thin", color: { rgb: hex(T.border) } }, right: { style: "thin", color: { rgb: hex(T.border) } } }
     };
     const thStyle = {
       font: { bold: true, color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: "0F172A" } },
+      fill: { fgColor: { rgb: hex(T.navy) } },
       alignment: { vertical: "center" }
     };
     const gtStyle = {
-      font: { bold: true, color: { rgb: "15803D" } },
-      fill: { fgColor: { rgb: "DCFCE7" } }
+      font: { bold: true, color: { rgb: hex(T.green) } },
+      fill: { fgColor: { rgb: hex(T.bg) } }
     };
 
     // Apply styles to info header (rows 0-5)
